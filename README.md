@@ -53,6 +53,15 @@ stages, and the [scenario catalogue](docs/reference/scenarios/scenario_catalogue
 lists the delivered scenarios: the support scenario `BAU` and the 17
 decision scenarios.
 
+To run many futures for Robust Decision Making, describe them in one Excel
+workbook and let `rdm` build, solve and collect them; the
+[RDM futures](docs/rdm.md) page explains the workbook and the outputs.
+
+```powershell
+python -m ostram rdm template --out Interface_OSTRAM_RDM.xlsx
+python -m ostram rdm run --interface Interface_OSTRAM_RDM.xlsx
+```
+
 The global options `--project-root` and `--workspace` go before the command.
 They override `OSTRAM_PROJECT_ROOT` and `OSTRAM_WORKSPACE`. Without them, the
 clone is the project root and `workspace/` under it holds the generated

@@ -70,12 +70,13 @@ what it checks.
 
 | Path | What it holds |
 |---|---|
-| `ostram/__main__.py` | The command line: `run`, `transform`, `compile-inputs`, `inspect-resources`, `example`, `country`, `scenario` and `new-scenario`. |
+| `ostram/__main__.py` | The command line: `run`, `transform`, `compile-inputs`, `inspect-resources`, `example`, `country`, `scenario`, `new-scenario` and `rdm`. |
 | `ostram/paths.py` | Path resolution: project root, workspace and the sources of record. |
 | `ostram/setups.py`, `ostram/setup_workspace.py` | Setup loading and setup workspaces. |
 | `ostram/examples.py` | The training example commands `example prepare` and `example report`. |
 | `ostram/terminal.py` | The run display and the run log. |
 | `ostram/validation/setup_domain.py` | Checks of a setup's compiled domain. |
+| `ostram/rdm/` | RDM futures: `interface.py` writes and reads the Excel interface, `design.py` expands the futures and samples and writes the run folder, `collect.py` gathers the RDM CSVs and `cli.py` is the `rdm` command. See [RDM futures](rdm.md). |
 | `ostram/reporting/` | The training dashboard, the direction comparison and the summary workbook. |
 | `ostram/pipeline/orchestration.py` | `python -m ostram run`: the environment check, DVC, and the stages A1 to B2 in order. |
 | `ostram/pipeline/preparation/` | A1 in `base_inputs.py`, A2 in `transmission.py`, the country template and validation commands and the secondary-technology helpers. |
