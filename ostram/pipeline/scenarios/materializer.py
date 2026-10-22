@@ -367,7 +367,7 @@ def materialize_scenarios(
                 source=derived.base_scenario,
                 skip_backup=True,
                 a1_outputs=active_paths.a1_outputs,
-                configs=resolve_paths().scenario_config_root,
+                configs=derived.config_root or resolve_paths().scenario_config_root,
                 ceiling_path=(
                     resolve_paths().scenario_registry
                 ),

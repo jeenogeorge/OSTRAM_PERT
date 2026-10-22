@@ -82,6 +82,32 @@ delivered scenarios.
 | `op: set_to_residual_factor_floor` | `factor`, `residual_year`, `base_window_floor`, `years` | Sets the listed years to the larger of the factor multiplied by `ResidualCapacity` in `residual_year` and the floor, rounded to six decimals. The target row must exist. |
 | `op: copy_from_tech` | `source_tech` | Sets every year to the value of the same parameter in the `source_tech` row on the same sheet, as that row stands when the edit runs. |
 
+## Demand edits
+
+An edit whose `sheet` is `Demand_Projection` changes the scenario's
+`A-O_Demand.xlsx` instead of `A-O_Parametrization.xlsx`. That sheet has one
+`SpecifiedAnnualDemand` row per demand fuel, keyed by its `Fuel/Tech` column,
+so a demand edit names its rows with exactly one of `fuel`, `fuels` and
+`fuel_prefix` and needs no `param` (when given, it must be
+`SpecifiedAnnualDemand`). It holds `values`, `op: multiply` (with optional
+`years`) or `op: set_flat`:
+
+```yaml
+- sheet: Demand_Projection
+  fuel_prefix: ELC
+  op: multiply
+  factor: 1.15
+  years: [2030, 2031, 2032]
+  note: "ASSUMPTION: demand 15 per cent higher"
+```
+
+A changed row whose `Projection.Mode` is blank or `EMPTY` is set to
+`User defined`. A demand edit that names no fuel on the sheet, or a year that
+is not a column, stops the build with a message, as for the other edits. The
+edit log lists its cells with `"workbook": "A-O_Demand.xlsx"`. A scenario
+without demand edits does not open `A-O_Demand.xlsx`, so its copy of the
+parent's file is unchanged.
+
 ## Reusing another scenario's edits
 
 A scenario file can name another derived scenario whose edits it applies before
