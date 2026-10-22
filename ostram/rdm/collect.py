@@ -10,7 +10,9 @@ folder.  ``RDM_Run_Status.csv`` records what was found for each future.
 
 from __future__ import annotations
 
+import contextlib
 import csv
+import io
 import json
 from pathlib import Path
 from typing import Sequence
@@ -31,8 +33,17 @@ def execution_params(execution_workspace: Path) -> dict:
     """Return the B2 parameters the way B2 resolves them for this workspace."""
 
     local = execution_workspace / "Config_MOMF_T1_AB.yaml"
-    path = local if local.is_file() else resolve_paths().execution_config
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    project = resolve_paths()
+    path = local if local.is_file() else project.execution_config
+    params = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not local.is_file():
+        # As in B2's run plan: the active setup's folders replace the
+        # config's path entries, which may hold ${...} manifest tokens.
+        params["executables"] = str(project.executables)
+    from ostram.pipeline.execution.orchestrator import apply_configuration_overrides
+    with contextlib.redirect_stdout(io.StringIO()):  # it reports each override
+        apply_configuration_overrides(params)
+    return params
 
 
 def future_files(execution_workspace: Path, params: dict, future: str) -> tuple[Path | None, Path | None]:
