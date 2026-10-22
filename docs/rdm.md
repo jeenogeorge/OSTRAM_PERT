@@ -95,7 +95,7 @@ selects every name that starts with the text, for example `PWRSPV` for all
 solar. The [data reference](data-reference.md#technology-prefixes) lists the
 prefixes.
 
-### Operations
+### Change operations
 
 | Operation | `Value` | Years |
 |---|---|---|
