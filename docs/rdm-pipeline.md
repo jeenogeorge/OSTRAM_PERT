@@ -103,9 +103,19 @@ configuration (from `examples\unescap_training\`) into its own workspace,
 `workspace\setups\unescap_training\`. No model is built yet: that happens in
 step 7, the first time a future needs it.
 
-**Where to look.** `workspace\setups\unescap_training\` now exists. Everything
-the training runs write goes under it, and Git ignores the whole `workspace\`
-folder.
+**Where to look.** `workspace\setups\unescap_training\` now exists. From now
+on, every file OSTRAM creates for the training model is saved inside this one
+folder: the base model it builds, each future's workbooks and edit log, the
+solver files, the run logs and your RDM results.
+
+- The originals in `inputs\`, `config\` and `examples\` are never changed;
+  OSTRAM works on its own copies here.
+- Git ignores the whole `workspace\` folder, so nothing here shows up in
+  `git status` or gets committed.
+- To start again from a clean training model, delete this folder and run this
+  step again.
+- The South Asia model keeps its files separately, directly under
+  `workspace\`.
 
 ---
 
