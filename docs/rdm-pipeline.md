@@ -148,8 +148,13 @@ python -m ostram --setup unescap_training rdm template --out Interface_OSTRAM_RD
 or copy a workbook you already have into your OSTRAM folder.
 
 **What happens inside.** The template has six visible sheets (README, Setup,
-Futures, Future_Changes, Uncertainty_Table, Outputs) with a worked example, and
-a hidden `Lists` sheet with the dropdown values. To fill the Selector dropdown,
+Futures, Future_Changes, Uncertainty_Table, Outputs) and a hidden `Lists`
+sheet with the dropdown values. Three sheets come pre-filled with the worked
+example of step 5, starting at row 2: 3 rows on Futures (F00, F01, F02),
+3 on Future_Changes and 2 on Uncertainty_Table (X1, X2). Overwrite or delete
+those rows with your own; `--blank` writes the template without them. The
+`interface.xlsx` in a run folder is a copy of the workbook that run used, not
+the template. To fill the Selector dropdown,
 it reads the technology and fuel names of the root scenario from
 `workspace\setups\unescap_training\preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\`.
 
