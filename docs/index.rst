@@ -29,6 +29,7 @@ Developed by `Climate Lead Group <https://github.com/Climate-Lead-Group>`_.
    scenario-edits
    adding-a-scenario
    rdm
+   rdm-pipeline
    adapting
 
 .. toctree::

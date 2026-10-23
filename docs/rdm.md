@@ -134,7 +134,12 @@ which names the future and suggests the closest name.
 `RDM_Inputs.csv` and `RDM_Outputs.csv` join to `RDM_Experiment_Design.csv`
 on `Future_ID`. They are the record of the run: the per-future folders under
 `<workspace>/execution/Executables/` and `<workspace>/preparation/A1_Outputs/`
-are reused by the next run with the same Future_IDs.
+are reused by the next run with the same Future_IDs. `rdm run` deletes each
+future's `Executables/<future>_0` folder before it starts, so a future that
+fails or is only compiled never shows an earlier run's results.
+
+The [RDM pipeline in detail](rdm-pipeline.md) page follows a run step by step
+and lists where every file comes from.
 
 ## How the futures reach the pipeline
 
