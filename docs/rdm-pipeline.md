@@ -98,10 +98,28 @@ shows which folder; run `pip install -e .` from this clone to switch it.
 python -m ostram example prepare unescap_training
 ```
 
-**What happens inside.** OSTRAM copies the training setup's inputs and
-configuration (from `examples\unescap_training\`) into its own workspace,
-`workspace\setups\unescap_training\`. No model is built yet: that happens in
-step 7, the first time a future needs it.
+**What happens inside.** OSTRAM copies the training model's **input data**
+from `examples\unescap_training\inputs\` into
+`workspace\setups\unescap_training\authorities\`, because some stages write
+back into these files and the originals must stay clean:
+
+| Copy | What it is |
+|---|---|
+| `osemosys_inputs\osemosys_global\` | 64 OSeMOSYS Global CSVs: the raw data for Bangladesh and India East (technologies, fuels, costs, capacities, demand). A1 builds the base model from them. |
+| `scenario_workbook\OSTRAM_Scenario_Inputs.xlsx` | The scenario workbook: the Control sheet with each root's rule scripts, technology costs, existing and planned generation, the interconnector, demand projections, RE targets. A3 reads it. |
+| `timeslice_workbook\OSTRAM_Timeslice_Inputs.xlsx` | The 20 timeslices: year splits, demand profiles, capacity factors. |
+| `preparation_inputs\preparation\` | `centerpoints.csv` (region locations) and `Tech_Country_Matrix.xlsx` (which technologies exist where). |
+
+The **configuration** is not copied; it is read in place from
+`examples\unescap_training\`: `setup.yaml` (where every file is, and the
+setup's policies), `config\scenarios\` (the roots and their rule settings),
+`config\preparation\` (country codes, used in A1), `config\compilation\` (B1)
+and `config\execution\` (B2, including the solver, CBC). The OSeMOSYS model
+file `model\osemosys_fast_preprocessed.txt` is shared with the main project.
+
+When you change an original input later, the next command refreshes its copy.
+No model is built yet: that happens in step 7, the first time a future needs
+it.
 
 **Where to look.** `workspace\setups\unescap_training\` now exists. From now
 on, every file OSTRAM creates for the training model is saved inside this one
