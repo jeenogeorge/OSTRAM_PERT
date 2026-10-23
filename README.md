@@ -55,7 +55,8 @@ decision scenarios.
 
 To run many futures for Robust Decision Making, describe them in one Excel
 workbook and let `rdm` build, solve and collect them; the
-[RDM futures](docs/rdm.md) page explains the workbook and the outputs.
+[RDM step by step](docs/rdm-pipeline.md) page walks through a first run, and
+[RDM futures](docs/rdm.md) is the reference.
 
 ```powershell
 python -m ostram rdm template --out Interface_OSTRAM_RDM.xlsx

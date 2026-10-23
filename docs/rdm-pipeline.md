@@ -1,349 +1,496 @@
-# RDM pipeline in detail
+# RDM step by step
 
-This page follows one `rdm run` from the workbook to the RDM CSVs: what each
-step reads, what it decides, what it writes and where. The
-[RDM futures](rdm.md) page is the user guide; read it first.
+This page takes you from a fresh clone to a finished RDM run, one step at a
+time. Each step says **what to type**, **what happens inside** OSTRAM, **where
+to look** and **what can go wrong**. It uses the two-region training model
+(`unescap_training`), which runs in minutes; step 10 says what changes for the
+South Asia model.
 
-## The whole run at a glance
+The [RDM futures](rdm.md) page is the short reference for the workbook and the
+commands.
+
+## The steps
+
+| Step | You type | OSTRAM does |
+|---|---|---|
+| 1 | `conda activate`, `set PYTHONUTF8=1` | – |
+| 2 | `git switch` / `git pull` | – |
+| 3 | `example prepare unescap_training` | Sets up the training workspace |
+| 4 | `rdm template` (or copy a workbook) | Writes the Excel interface |
+| 5 | (fill the workbook in Excel) | – |
+| 6 | `rdm generate` | Checks the workbook, creates the futures, writes the run folder |
+| 7 | `rdm run` | Builds, compiles and solves every future, then collects the CSVs |
+| 8 | (open the results) | – |
+| 9 | change the workbook, run again | – |
+| 10 | the same, without `--setup` | The South Asia model |
 
 ```mermaid
-flowchart TB
-    W["Interface workbook (.xlsx)"] --> R["1. Read and check<br/>ostram/rdm/interface.py"]
-    R --> G["2. Expand futures and sample<br/>ostram/rdm/design.py"]
-    G --> F["3. Run folder<br/>rdm/&lt;Run_Name&gt;/<br/>scenario.yaml per future"]
-    F --> C["4. Clear old result folders<br/>Executables/&lt;future&gt;_0"]
-    C --> P["5. python -m ostram run<br/>with OSTRAM_RDM_FUTURES set"]
-    P --> A12["A1 + A2: base model and transmission<br/>(only when the root has no post-A2 snapshot)"]
-    A12 --> A3["A3: root rules, then each future<br/>= root + ceilings + edits + base-year pin"]
-    A3 --> B1["B1: A-O workbooks to OSeMOSYS CSVs"]
-    B1 --> B2["B2: datafile, LP, solver, result CSVs"]
-    B2 --> K["6. Collect<br/>ostram/rdm/collect.py"]
-    K --> O["RDM_Inputs.csv, RDM_Outputs.csv,<br/>RDM_Run_Status.csv"]
+flowchart LR
+    S5["5 Workbook"] --> S6["6 generate:<br/>check, create futures,<br/>write run folder"]
+    S6 --> S7a["7 run: A1+A2<br/>(first time only)"]
+    S7a --> S7b["A3: build<br/>each future"]
+    S7b --> S7c["B1: compile"]
+    S7c --> S7d["B2: solve"]
+    S7d --> S7e["collect<br/>RDM CSVs"]
+    S7e --> S8["8 Results"]
 ```
 
-| Step | Command that runs it | Module |
+Every command runs from your OSTRAM folder (the clone) in an Anaconda Prompt.
+
+---
+
+## Step 1. Open the prompt
+
+**Type**
+
+```bat
+cd <your OSTRAM folder>
+conda activate OSTRAM-env
+set PYTHONUTF8=1
+```
+
+In PowerShell the last line is `$env:PYTHONUTF8 = '1'`. Repeat this step in
+every new prompt.
+
+**Why.** Every OSTRAM stage runs under the Python of the active environment.
+`PYTHONUTF8=1` stops Windows from misreading the model files.
+
+---
+
+## Step 2. Be on the RDM branch
+
+**Type**, the first time:
+
+```bat
+git fetch origin
+git switch feat/rdm-futures
+```
+
+and later, to get new changes:
+
+```bat
+git pull
+```
+
+**Check**
+
+```bat
+git branch
+python -m ostram rdm --help
+```
+
+`git branch` puts `*` next to `feat/rdm-futures`. The help lists the four
+subcommands `template`, `generate`, `run` and `collect`.
+
+**If it goes wrong.** `rdm` is an unknown command when the environment runs
+OSTRAM from another folder. `python -c "import ostram; print(ostram.__file__)"`
+shows which folder; run `pip install -e .` from this clone to switch it.
+
+`git switch main` takes you back to the original code at any time.
+
+---
+
+## Step 3. Prepare the training model (once)
+
+**Type**
+
+```bat
+python -m ostram example prepare unescap_training
+```
+
+**What happens inside.** OSTRAM copies the training setup's inputs and
+configuration (from `examples\unescap_training\`) into its own workspace,
+`workspace\setups\unescap_training\`. No model is built yet: that happens in
+step 7, the first time a future needs it.
+
+**Where to look.** `workspace\setups\unescap_training\` now exists. Everything
+the training runs write goes under it, and Git ignores the whole `workspace\`
+folder.
+
+---
+
+## Step 4. Get the interface workbook
+
+**Type**, to write a new one:
+
+```bat
+python -m ostram --setup unescap_training rdm template --out Interface_OSTRAM_RDM.xlsx
+```
+
+or copy a workbook you already have into your OSTRAM folder.
+
+**What happens inside.** The template has six visible sheets (README, Setup,
+Futures, Future_Changes, Uncertainty_Table, Outputs) with a worked example, and
+a hidden `Lists` sheet with the dropdown values. To fill the Selector dropdown,
+it reads the technology and fuel names of the root scenario from
+`workspace\setups\unescap_training\preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\`.
+
+**If it goes wrong.** On a fresh workspace the root is not built yet, so the
+command says the selector dropdown is empty. The workbook still works: type the
+names, or write the template again after step 7 has run once. `--blank` leaves
+out the worked example.
+
+The command looks for files relative to the folder you are in, so keep the
+workbook in your OSTRAM folder or give its full path in quotes.
+
+---
+
+## Step 5. Fill the workbook
+
+Open the workbook in Excel. This is the worked example of the template, sheet
+by sheet.
+
+### Setup
+
+| Setting | Example | What it decides |
 |---|---|---|
-| 1. Read and check | `rdm generate`, `rdm run` | `ostram.rdm.interface.read_interface` |
-| 2. Expand futures and sample | `rdm generate`, `rdm run` | `ostram.rdm.design.expand_futures` |
-| 3. Write the run folder | `rdm generate`, `rdm run` | `ostram.rdm.design.write_run_folder` |
-| 4. Clear old result folders | `rdm run` | `ostram.rdm.collect.clear_future_folders` |
-| 5. Build, compile and solve | `rdm run` | `ostram.pipeline.orchestration.main` (the normal `run`) |
-| 6. Collect | `rdm run`, `rdm collect` | `ostram.rdm.collect.collect_run` |
+| `Run_Name` | `test01` | The run folder, `workspace\setups\unescap_training\rdm\test01\` |
+| `Base_Scenario` | `B_Optimised_VRE` | The root every future starts from |
+| `Samples_Per_Future` | `1` | How many sampled variants each named future gets. 0 means no sampling. |
+| `Random_Seed` | `12345` | Same seed, same sampled values |
+| `Run_Central_Future` | `Y` | Also run each named future without its sampled values |
+| `Apply_VRE_Ceilings` | `Auto` | The shared solar and wind ceilings. Auto uses them when the setup has them; the training setup does not. |
+| `Model_First_Year`, `Model_Last_Year` | `2023`, `2050` | The years a change with an open end runs to |
 
-`rdm generate` stops after step 3. `rdm run --compile-only` runs every step but
-skips the matrix and the solver in B2, so step 6 finds inputs and no results.
+### Futures
 
-## Step 1. Reading and checking the workbook
+| Future_ID | Name | Run |
+|---|---|---|
+| F00 | Baseline | Y |
+| F01 | Cheap solar | Y |
+| F02 | High demand, dear coal | Y |
 
-`read_interface` opens the workbook read-only with cached values
-(`data_only=True`). A cell that holds a formula is read as the value Excel last
-saved, so save the workbook in Excel after changing a formula.
+A future with no rows on Future_Changes is the root itself: here F00 is the
+baseline. `Run = N` keeps a future in the workbook without running it.
 
-The sheets `Setup`, `Futures`, `Future_Changes`, `Uncertainty_Table` and
-`Outputs` must exist, each with its header row. Blank rows are skipped. Every
-check runs before anything is written, and all problems are reported together,
-each with its sheet and row:
+### Future_Changes: what makes each future different
 
-| Sheet | Check |
+| Future_ID | Sheet | Parameter | Selector_Type | Selector | Operation | Value | Year_From | Year_To |
+|---|---|---|---|---|---|---|---|---|
+| F01 | Secondary Techs | CapitalCost | Tech_Prefix | PWRSPV | Multiply_Ramp | 0.7 | 2026 | 2035 |
+| F02 | Demand_Projection | SpecifiedAnnualDemand | Fuel_Prefix | ELC | Multiply | 1.15 | 2027 | |
+| F02 | VariableCost | VariableCost | Tech | MINCOABGD | Multiply | 2 | | |
+
+In words:
+
+- **F01**: the capital cost of every solar plant (every technology whose name
+  starts with `PWRSPV`) falls in a straight line from 100 % in 2026 to 70 % in
+  2035, and stays at 70 % to 2050.
+- **F02**: demand for every electricity demand fuel (names starting `ELC`) is
+  15 % higher from 2027 to 2050; and the price of coal in Bangladesh
+  (`MINCOABGD`) doubles in every year.
+
+`Sheet` says which part of the model holds the number:
+
+| Sheet | Holds |
 |---|---|
-| `Setup` | `Run_Name` uses letters, digits, `_` and `-`. `Base_Scenario` is given. `Samples_Per_Future` is a whole number from 0 to 9999. `Random_Seed` is a whole number (blank means 12345). `Run_Central_Future` is Y or N (blank means Y). `Apply_VRE_Ceilings` is Auto, Y or N (blank means Auto). `Model_Last_Year` is after `Model_First_Year` (blank means 2023 and 2050). |
-| `Futures` | At least one future; at least one with `Run` = Y. `Future_ID` is a letter followed by letters or digits, and is not repeated. |
-| `Future_Changes` | `Future_ID` is on the Futures sheet. `Sheet` is one of the five target sheets. `Parameter` is given; on `Demand_Projection` it is `SpecifiedAnnualDemand`. `Selector_Type` matches the sheet: `Tech`/`Techs`/`Tech_Prefix` on technology sheets, `Fuel`/`Fuels`/`Fuel_Prefix` on `Demand_Projection`. `Selector` is given. `Operation` is one of the four. `Value` is a number, or a technology name for `Copy_From_Tech`. Years are whole numbers inside the model years, `Year_To` not before `Year_From`; `Multiply_Ramp` has both, with `Year_To` after `Year_From`; `Copy_From_Tech` has none and is not used on demand. |
-| `Uncertainty_Table` | `X_ID` follows the Future_ID pattern and is not repeated. `Applies_To` is `ALL` (or blank) or Future_IDs on the Futures sheet. The target columns as above. `Method` is `Multiply`, `Multiply_Ramp` or `Set`. `Min` and `Max` are numbers, `Max` not below `Min`. `Linked_To` names another X_ID that is not itself linked. Rows here need `Samples_Per_Future` above 0. |
-| `Outputs` | `Kind` is Input or Output for every row with `Export` = Y. |
+| Secondary Techs | power plants, storage, interconnectors (`PWR…`, `TRN…`) |
+| Primary Techs | fuel supply (`MIN…`) |
+| Demand Techs | the grid tiers between plants and demand |
+| VariableCost | fuel prices and other running costs |
+| Demand_Projection | electricity demand, one row per demand fuel |
 
-These checks cover the workbook's own consistency. Whether a technology, fuel
-or year exists in the model is checked later, in A3, against the root's actual
-workbooks (step 5).
+The operations are `Multiply`, `Multiply_Ramp`, `Set` and `Copy_From_Tech`
+(copy every year from the technology named in Value). Blank years mean every
+year; one year given means from it to the end, or from the start to it.
 
-When `generate` or `run` starts, two more checks run against the active setup:
-`Base_Scenario` must be one of the setup's roots, and `Apply_VRE_Ceilings` = Y
-needs a setup that defines shared VRE ceilings. `Auto` becomes Y for South Asia
-and N for the training setup.
+### Uncertainty_Table: what is sampled inside every future
 
-## Step 2. Expanding futures and sampling
+| X_ID | Name | Applies_To | Sheet | Parameter | Selector_Type | Selector | Method | Min | Max | Year_From | Year_To |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| X1 | Demand growth | ALL | Demand_Projection | SpecifiedAnnualDemand | Fuel_Prefix | ELC | Multiply_Ramp | 0.9 | 1.1 | 2026 | 2050 |
+| X2 | Gas price | ALL | VariableCost | VariableCost | Tech_Prefix | MINGAS | Multiply | 0.8 | 1.5 | | |
 
-### Which futures run
+Each sample draws one value of X1 between 0.9 and 1.1 and one of X2 between
+0.8 and 1.5. `Applies_To` = ALL layers them inside every future;
+`F01, F02` would limit them to those two. `Linked_To` makes one row move with
+another.
 
-For each future with `Run` = Y, in the order of the Futures sheet:
+### Outputs
 
-| Situation | Futures created |
-|---|---|
-| `Samples_Per_Future` = 0 | `F01` |
-| No uncertainty applies to the future | `F01` |
-| N samples and `Run_Central_Future` = Y | `F01`, `F01_s001` … `F01_sN` |
-| N samples and `Run_Central_Future` = N | `F01_s001` … `F01_sN` |
+`Export = Y` puts an input parameter or a result variable in the RDM CSVs.
+The timeslice-level variables (for example `RateOfActivity`) are large and are
+N by default.
 
-The sample number has at least three digits, more when N needs them
-(`F01_s0001` for N = 1000 or more).
+**Then save the workbook and close Excel.** OSTRAM reads the saved file, so
+unsaved changes are not seen.
 
-### How values are drawn
+---
 
-1. A random generator is seeded with `Random_Seed` (`numpy.random.default_rng`).
-2. A Latin Hypercube design with N rows is drawn, with one column per
-   uncertainty that has no `Linked_To`, in table order. In each column, the N
-   values fall one in each of N equal slices of [0, 1), in random order, at a
-   random point inside the slice.
-3. Each uncertainty turns its column's position *p* into a value:
-   `Min + p × (Max − Min)`, rounded to six decimals. A linked uncertainty uses
-   the column of the X_ID it names, so both sit at the same position in their
-   own ranges.
-4. Sample *s* of every future uses row *s* of the same design: common random
-   numbers. `F01_s007` and `F02_s007` share their uncertainty values, so their
-   difference comes only from the futures' own changes.
+## Step 6. Preview the futures (nothing is solved)
 
-The same workbook and seed always give the same values. Adding, removing or
-reordering uncertainty rows changes the design, and so the values of every
+**Type**
+
+```bat
+python -m ostram --setup unescap_training rdm generate --interface Interface_OSTRAM_RDM.xlsx
+```
+
+**You see**
+
+```text
+Run folder: ...\workspace\setups\unescap_training\rdm\test01
+6 future(s) from 3 named future(s), base scenario B_Optimised_VRE: F00, F00_s001, F01, F01_s001, F02, F02_s001
+```
+
+**What happens inside**, in this order.
+
+**6.1 The workbook is read and checked.** Every sheet is checked before
+anything is written, and all problems are listed together, each with its sheet
+and row: names, numbers, years inside the model years, a selector type that
+fits the sheet, an X_ID named by `Linked_To` that exists, and so on. Whether a
+technology or fuel really exists in the model is checked later, in step 7.3.
+
+**6.2 The setup is checked.** `Base_Scenario` must be a root of the setup
+(`BAU`, `A_Calibrated_BAU`, `B_Optimised_VRE` or `C_Target_VRE`), and
+`Apply_VRE_Ceilings` is turned into Y or N.
+
+**6.3 The futures are listed.** With `Samples_Per_Future = 1` and
+`Run_Central_Future = Y`, each named future becomes two: itself, and one
 sample.
 
-### What a future's edits are
+| Future | Starts from | Then applies |
+|---|---|---|
+| F00 | B_Optimised_VRE | nothing |
+| F00_s001 | B_Optimised_VRE | sample 1 of X1 and X2 |
+| F01 | B_Optimised_VRE | the solar ramp |
+| F01_s001 | B_Optimised_VRE | the solar ramp, then sample 1 of X1 and X2 |
+| F02 | B_Optimised_VRE | the demand and coal changes |
+| F02_s001 | B_Optimised_VRE | the demand and coal changes, then sample 1 of X1 and X2 |
 
-A future's edit list is its own `Future_Changes` rows, top to bottom, followed
-by its sampled uncertainties in table order. Each row becomes one or more
-scenario edits:
+**6.4 The values are sampled.** Latin Hypercube sampling, from the seed:
+with N samples, each uncertainty's range is cut into N equal slices and every
+slice is used once. Sample 1 is **the same draw in every future**, so
+`F01_s001` and `F02_s001` differ only by the futures' own changes.
 
-| Workbook row | Scenario edit(s) |
+**6.5 Each row becomes scenario edits.** OSTRAM already builds scenarios from
+a list of edits in a `scenario.yaml` file (see [scenario edits](scenario-edits.md)).
+The workbook rows are written in that format. F02's demand row becomes:
+
+```yaml
+- sheet: Demand_Projection
+  param: SpecifiedAnnualDemand
+  fuel_prefix: ELC
+  note: 'ASSUMPTION: example, demand 15% above the root from 2027 [Future_Changes row 3]'
+  op: multiply
+  factor: 1.15
+  years: [2027, 2028, ..., 2050]
+```
+
+A `Multiply_Ramp` becomes one multiply per year on the way to the target, then
+one for the years after it. Edits are applied in order, so the sampled values
+act on the future's path: F02's demand (×1.15) times a demand sample of 0.95
+gives 1.0925 × the root.
+
+**6.6 The run folder is written.**
+
+| File | What to look for |
+|---|---|
+| `scenarios\F02_s001\scenario.yaml` | The exact edits F02_s001 will apply; each note ends with the workbook row it came from |
+| `RDM_Experiment_Design.csv` | One row per future: its named future, sample number and the value drawn for X1 and X2 |
+| `futures.yaml` | The list of futures that step 7 registers |
+| `rdm_manifest.json` | The settings and the variables to export |
+| `interface.xlsx` | A copy of your workbook, so the run can be repeated |
+
+**Check now**
+
+```bat
+notepad workspace\setups\unescap_training\rdm\test01\scenarios\F02_s001\scenario.yaml
+start workspace\setups\unescap_training\rdm\test01\RDM_Experiment_Design.csv
+```
+
+**If it goes wrong**
+
+| Message | Fix |
+|---|---|
+| `interface workbook not found` | Run from the workbook's folder, or give its full path in quotes |
+| `Uncertainty_Table has rows but Samples_Per_Future is 0` | Set `Samples_Per_Future` to 1 or more |
+| `Base_Scenario ... is not a root of this setup` | Use a root from the message; check `--setup` |
+| `Apply_VRE_Ceilings is Y, but this setup defines no shared VRE ceilings` | Use Auto or N |
+| `future name(s) ... are already registered scenarios` | Pick Future_IDs that are not existing scenario names |
+| `run folder exists` | Change `Run_Name`, or add `--overwrite` |
+
+---
+
+## Step 7. Run everything
+
+**Type**
+
+```bat
+python -m ostram --setup unescap_training rdm run --interface Interface_OSTRAM_RDM.xlsx --overwrite
+```
+
+`--overwrite` replaces the run folder that step 6 wrote. To build and compile
+without solving, add `--compile-only`: a quick check before a long run. If your
+environment is not called `OSTRAM-env`, add `--env-name <name>`.
+
+**You see**
+
+```text
+Run folder: ...
+6 future(s) from 3 named future(s), base scenario B_Optimised_VRE: ...
+Using environment: OSTRAM-env
+[1/5 · A1] Preparing the base model | STARTED
+[1/5 · A1] Preparing the base model | COMPLETED | elapsed 00:00:25
+[2/5 · A2] Adding the transmission network | COMPLETED | ...
+[3/5 · A3] Building selected scenarios | COMPLETED | ...
+[4/5 · B1] Compiling model inputs | COMPLETED | ...
+[5/5 · B2] Running the model and collecting results | COMPLETED | ...
+OSTRAM run completed successfully
+Solved: 6, compiled only: 0, missing: 0
+RDM inputs: ...\RDM_Inputs.csv
+RDM outputs: ...\RDM_Outputs.csv
+Run status: ...\RDM_Run_Status.csv
+```
+
+**What happens inside**, in this order. Paths are under
+`workspace\setups\unescap_training\`.
+
+**7.1 Steps 6.1 to 6.6 again.** The workbook is read again, so the run always
+uses what is saved now.
+
+**7.2 Old results of these futures are cleared.** OSTRAM keeps each scenario's
+solver files in `execution\Executables\<future>_0\` and reuses that folder.
+The folders of this run's futures are deleted first, so a future that fails now
+can never show the results of an earlier run. Other scenarios' folders are
+not touched.
+
+**7.3 The normal OSTRAM pipeline runs on the futures.** `rdm run` calls the
+same pipeline as `python -m ostram run`, for the six futures. It sets the
+environment variable `OSTRAM_RDM_FUTURES` to the run's `futures.yaml`; while
+it is set, OSTRAM's scenario registry treats each future like a scenario in
+`config\scenarios\`, with its `scenario.yaml` read from the run folder. Nothing
+in `config\` or `inputs\` changes. The stages:
+
+| Stage | What it does for the futures | Where to look |
+|---|---|---|
+| Environment | Checks the conda environment. DVC is skipped. | – |
+| **A1 + A2** (first run only) | Builds the base model from the input CSVs, then adds the transmission network, and keeps a snapshot of the root. Skipped on later runs because the snapshot exists. | `preparation\A1_Outputs\_post_a2_snapshot_B_Optimised_VRE\` |
+| **A3, the root** | Rebuilds `B_Optimised_VRE` from its snapshot with its rule scripts (retirement, build caps, storage floors…). | `preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\` |
+| **A3, each future** | Copies the root's workbooks to `A1_Outputs_<future>`; applies the shared VRE ceilings when switched on; applies the future's edits in order (technology edits to `A-O_Parametrization.xlsx`, demand edits to `A-O_Demand.xlsx`); re-applies the base-year pin where the setup uses one; writes an edit log of every changed cell. | `preparation\A1_Outputs\A1_Outputs_F02\` and its `apply_patches_CHANGES_<time>.json` |
+| **B1** | Turns each future's workbooks into OSeMOSYS parameter CSVs. | `compilation\A2_Output_Params\F02\` |
+| **B2, datafile** | Converts the CSVs into the solver datafile with otoole and applies the model-file adjustments (storage delay, open backstop, reserve-margin fallbacks). | `execution\Executables\F02_0\Pre_processed_F02_0_StorageDelayN5_OpenBCK_RMCarefulXLSX.txt` |
+| **B2, solve** | Writes the LP and solves it: CBC for the training model. Skipped with `--compile-only`. | `execution\Executables\F02_0\*.lp`, `*.sol` |
+| **B2, results** | Writes the future's input table and result table. | `execution\Executables\F02_0\F02_0_Input.csv`, `...\Pre_processed_F02_0_..._output.csv` |
+
+The edit log is the place to confirm that a change did what you meant: it
+lists each changed cell with its old and new value.
+
+**7.4 The RDM CSVs are collected.** For each future, OSTRAM reads its input
+and result tables, keeps the variables marked `Export = Y`, adds
+`Future_ID`, `Named_Future` and `Sample` in front, and appends them to
+`RDM_Inputs.csv` and `RDM_Outputs.csv`. One future is read at a time, so
+hundreds of futures do not run out of memory. `RDM_Run_Status.csv` records
+each future as `solved`, `compiled` (inputs only) or `missing`.
+
+**How long.** The first run spends a few minutes on A1 and A2. After that,
+each training future builds and compiles in well under a minute; the solve
+takes most of the time. B2 solves one future after another unless
+`parallel: True` is set in the execution configuration.
+
+**If it goes wrong**
+
+| What you see | Meaning and fix |
+|---|---|
+| `Scenario F02: the edit to ... changed nothing. ... Did you mean ...?` | A Selector, Parameter or year does not exist in the root. The message names the future and suggests the closest name; the note in `scenarios\F02\scenario.yaml` gives the workbook row. Fix the row and run again. |
+| The run stops part way | The CSVs are still written for the futures that finished. Read `logs\<run-id>\run.log` for the detail. |
+| A future is `compiled` after a full run | Its solve did not finish; the solver message is in the run log. |
+
+---
+
+## Step 8. Look at the results
+
+Everything is in `workspace\setups\unescap_training\rdm\test01\`.
+
+1. **`RDM_Run_Status.csv`**: did every future solve?
+2. **`RDM_Experiment_Design.csv`**: which future is which, and the sampled
+   values. This is the table of "X" for scenario discovery.
+3. **`RDM_Outputs.csv`**: the results ("M"), one block per future.
+4. **`RDM_Inputs.csv`**: the input values each future used.
+
+All four share the column `Future_ID`, so they join directly. In Python:
+
+```python
+import pandas as pd
+
+run = r"workspace\setups\unescap_training\rdm\test01"
+design = pd.read_csv(rf"{run}\RDM_Experiment_Design.csv")
+outputs = pd.read_csv(rf"{run}\RDM_Outputs.csv", low_memory=False)
+
+cost = outputs.groupby("Future_ID")["TotalDiscountedCost"].sum().rename("cost")
+print(design.merge(cost, on="Future_ID"))
+```
+
+In Excel, open `RDM_Outputs.csv` and use a PivotTable with `Future_ID` as
+columns.
+
+To check one change, open
+`preparation\A1_Outputs\A1_Outputs_F02\apply_patches_CHANGES_<time>.json`
+and search for the technology or fuel.
+
+---
+
+## Step 9. Change something and run again
+
+| You want to | Do |
+|---|---|
+| Keep the old run and start a new one | Change `Run_Name`, save, run step 7 without `--overwrite` |
+| Replace the old run | Keep `Run_Name`, run step 7 with `--overwrite` |
+| Export other variables without solving again | Edit the Outputs sheet, run `rdm generate ... --overwrite`, then `python -m ostram --setup unescap_training rdm collect --run test01` |
+| Rebuild the CSVs after a run stopped part way | `python -m ostram --setup unescap_training rdm collect --run test01` |
+| Repeat an old run exactly | Use the `interface.xlsx` in its run folder as `--interface` |
+
+Changing `Random_Seed`, or adding, removing or reordering uncertainty rows,
+changes every sampled value.
+
+---
+
+## Step 10. The South Asia model
+
+The same steps, with these differences:
+
+- Leave out `--setup unescap_training`: South Asia is the default setup. Its
+  files are under `workspace\` directly, for example
+  `workspace\rdm\<Run_Name>\`. Step 3 is not needed.
+- `Apply_VRE_Ceilings = Auto` applies the shared solar and wind ceilings.
+- For futures built on `A_Calibrated_BAU`, `B_Optimised_VRE` or
+  `C_Target_VRE`, the base-year pin keeps the reviewed 2023–2026 values of
+  the calibrated technologies, even after a `Set` without years.
+- B2 solves with CPLEX by default. The model is larger; run `--compile-only`
+  first.
+- A future built on `C_Target_VRE` needs a solved `A_Calibrated_BAU`, passed
+  with `--a-result-seed <folder>`.
+
+---
+
+## Reference
+
+### What a future cannot do
+
+- A future starts from a root, not from another derived scenario. Copy that
+  scenario's changes into the future's rows instead.
+- A future has no gross import cap and no interconnector direction overlay.
+- An edit changes the first row of a technology and parameter on a sheet, so
+  `CapacityFactor` (one row per timeslice) cannot be changed.
+
+### How a workbook row becomes edits
+
+| Row | Edit(s) in `scenario.yaml` |
 |---|---|
 | `Multiply`, no years | `op: multiply`, `factor` |
-| `Multiply` with years | `op: multiply`, `factor`, `years: [from … to]` |
-| `Set`, no years | `op: set_flat`, `value` (every year column) |
-| `Set` with years | `values: {year: value}` for each year from … to |
+| `Multiply` with years | `op: multiply`, `factor`, `years` |
+| `Set`, no years | `op: set_flat`, `value` (every year, base years included) |
+| `Set` with years | `values: {year: value}` |
 | `Copy_From_Tech` | `op: copy_from_tech`, `source_tech` |
-| `Multiply_Ramp` from *a* to *b*, final factor *f* | one `multiply` per year *y* from *a*+1 to *b* with factor `1 + (f − 1)(y − a)/(b − a)`, then one `multiply` with factor *f* for the years after *b* up to `Model_Last_Year` |
+| `Multiply_Ramp`, years *a* to *b*, final factor *f* | for each year *y* after *a* up to *b*: `multiply` by `1 + (f − 1)(y − a)/(b − a)`; then `multiply` by *f* for the years after *b* |
 
-With only `Year_From`, the years run to `Model_Last_Year`; with only `Year_To`,
-they start at `Model_First_Year`. Selectors map to `tech`, `techs`,
-`tech_prefix`, `fuel`, `fuels` and `fuel_prefix`; `Techs` and `Fuels` are
-split at commas. Each edit's `note` holds the row's Note followed by its origin,
-for example `[Future_Changes row 4]`.
+### Code map
 
-### How edits combine
-
-Edits apply in list order, each to the result of the ones before it:
-
-- Two `Multiply` edits on the same cells compound: 1.15 then 0.9 gives 1.035.
-- A `Set` replaces whatever came before it; a later `Multiply` scales the set
-  value.
-- Uncertainties come after the future's changes, so they scale or replace the
-  future's path, not the root's.
-- A `Set` without years writes every year column, base years included. On a
-  root with the base-year pin (South Asia's A, B and C roots), the pin
-  re-applied at the end of A3 restores the reviewed base-year values of the
-  technologies it covers.
-
-## Step 3. The run folder
-
-`write_run_folder` refuses a Future_ID that is already a scenario name in the
-setup (a root or a registered decision scenario). It refuses an existing run
-folder unless `--overwrite` is given, and then deletes it first. It then writes
-`<workspace>/rdm/<Run_Name>/`:
-
-| File | Written from | Content |
-|---|---|---|
-| `scenarios/<future>/scenario.yaml` | each future | `scenario`, `base_scenario`, a generated `description`, `apply_vre_ceiling_layer` and the `edits` list, in the format of `config/scenarios/<name>/scenario.yaml` |
-| `futures.yaml` | all futures | `schema: ostram-futures-v1`, `run_name`, `base_scenario` and the list of future names, in run order |
-| `RDM_Experiment_Design.csv` | all futures | `Future_ID`, `Named_Future`, `Future_Name`, `Sample` (0 for a central future), then one column per X_ID, blank where the uncertainty does not apply |
-| `rdm_manifest.json` | the Setup sheet | the run settings, the future names and the exported input and output variables |
-| `interface.xlsx` | the workbook | an unchanged copy |
-
-The workbook copy, the seed and the `scenario.yaml` files are enough to
-reproduce the run: `rdm generate --interface rdm/<Run_Name>/interface.xlsx`
-writes the same futures again.
-
-## Step 4. Clearing old result folders
-
-B2 writes each scenario into `Executables/<scenario>_0/` and reuses that folder
-when it exists. Before the pipeline starts, `rdm run` deletes the
-`Executables/<future>_0/` folder of each future in this run. A future that
-fails, or is only compiled, in this run therefore never shows the result of an
-earlier run with the same Future_ID. Folders of other scenarios are untouched.
-Earlier runs keep their collected results in their own run folders.
-
-## Step 5. Building, compiling and solving
-
-`rdm run` sets `OSTRAM_RDM_FUTURES` to the run's `futures.yaml` and calls the
-normal `run` in the same process, as if you had typed:
-
-```text
-python -m ostram run --skip-pull --scenarios F00,F00_s001,... [--compile-only] [--env-name ...] [--a-result-seed ...] [--verbose]
-```
-
-Each stage runs as a child process, which inherits the variable. The variable is
-removed again when the pipeline returns, whether it succeeded or failed.
-
-### How the futures join the scenario registry
-
-Every stage loads the scenario registry (`ostram.pipeline.scenarios.registry.load_registry`).
-When `OSTRAM_RDM_FUTURES` is set, `load_futures` reads the futures file and,
-for each name in it:
-
-- checks that `scenarios/<name>/scenario.yaml` exists beside the file and
-  declares `scenario: <name>`;
-- adds a derived scenario with that name, the file's `base_scenario` as its
-  parent, and the run folder's `scenarios/` as its config root;
-- appends the name to the decision scenarios.
-
-The usual registry checks then run on the whole list: names are safe, no name
-is repeated, and every derived scenario's parent is a root. Nothing is read
-from or written to `config/` for a future. When the variable is unset, the
-registry is exactly the setup's.
-
-### What each stage does for a future
-
-| Stage | What happens | Written to (under the setup's workspace) |
-|---|---|---|
-| Environment | Checks the conda environment and dependencies. DVC is skipped (`--skip-pull`). | – |
-| A1 + A2 | Builds the base model and adds transmission, only when the future's root has no post-A2 snapshot yet (the first run in a workspace). | `preparation/A1_Outputs/_post_a2_snapshot_<root>/` |
-| A3, root | Rebuilds the root from its snapshot with the rule scripts named in the Control sheet. | `preparation/A1_Outputs/A1_Outputs_<root>/` |
-| A3, future | `scenario_edits.build_scenario`: copies the root's folder to `A1_Outputs_<future>` (replacing an old one), applies the shared VRE ceilings when the future's file says so, applies the edits in order, saves, re-applies the base-year pin where the setup uses it, and writes the edit log. | `preparation/A1_Outputs/A1_Outputs_<future>/` with `apply_patches_CHANGES_<stamp>.json` |
-| B1 | Compiles the future's A-O workbooks into OSeMOSYS parameter CSVs. | `compilation/A2_Output_Params/<future>/` |
-| B2, datafile | Converts the CSVs with otoole and applies the model-file adjustments of the execution configuration (storage delay, open backstop, reserve-margin fallbacks). | `execution/A2_Outputs_Params_otoole/<future>/`, `execution/Executables/<future>_0/*.txt` |
-| B2, solve | Writes the LP with `glpsol --wlp` and solves it with the configured solver (CBC for the training setup, CPLEX for South Asia by default). Skipped with `--compile-only`. | `execution/Executables/<future>_0/*_output.lp`, `*.sol` |
-| B2, results | Converts the solution to result CSVs and writes the future's input and output tables. | `execution/Executables/<future>_0/<future>_0_Input.csv` and `Pre_processed_<future>_0_<suffixes>_output.csv` |
-
-Where an edit names a technology, fuel, parameter or year that the future's
-root does not have, A3 stops with the message of the
-[scenario edits](scenario-edits.md#edits-that-match-nothing), naming the future
-and suggesting the closest name. The futures after it are not built.
-
-#### Which workbook an edit changes
-
-- Edits on `Secondary Techs`, `Primary Techs`, `Demand Techs` and
-  `VariableCost` change `A-O_Parametrization.xlsx`. They change the first row of
-  the technology and parameter on that sheet.
-- Edits on `Demand_Projection` change `A-O_Demand.xlsx`, one row per demand
-  fuel keyed by its `Fuel/Tech` column. That workbook is opened only when a
-  future has a demand edit.
-- A changed row whose `Projection.Mode` is blank or `EMPTY` becomes
-  `User defined`, so B1 exports it.
-
-#### The edit log
-
-`A1_Outputs_<future>/apply_patches_CHANGES_<stamp>.json` lists every changed
-cell with its technology or fuel, parameter, year, old value and new value;
-demand cells also carry `"workbook": "A-O_Demand.xlsx"`. When the shared VRE
-ceilings apply, their cells are in the list too. It is the place to confirm
-that a change did what was intended.
-
-#### What B2 adds beyond the RDM outputs
-
-B2 also writes its usual cross-scenario files,
-`execution/OSTRAM_StorageDelay_{Inputs,Outputs,Combined_Inputs_Outputs}.csv`.
-They cover every folder in `Executables/`, including scenarios outside the RDM
-run. The RDM CSVs of step 6 cover exactly this run's futures.
-
-#### Order and parallel solving
-
-The futures run in the order of the run folder. B2 solves one at a time unless
-`parallel: True` is set in the execution configuration, with `max_x_per_iter`
-futures per batch (see [configuration](configuration.md)). On the training
-model one future compiles in well under a minute; the solve takes the most
-time.
-
-#### When the pipeline stops part way
-
-`rdm run` still runs step 6, so the CSVs hold every future that finished, and
-`RDM_Run_Status.csv` shows which did not. It then exits with the pipeline's
-exit code. The run log, `logs/<run-id>/run.log`, has the full detail.
-
-## Step 6. Collecting the RDM CSVs
-
-`collect_run` finds B2's folder the same way B2 does: from the execution
-configuration of the active setup, with the setup's `Executables` folder and
-B2's configuration overrides, which decide the result file's suffixes (for
-example `_StorageDelayN5_OpenBCK_RMCarefulXLSX_output.csv`). For each future it
-looks for:
-
-- the input table `Executables/<future>_0/<future>_0_Input.csv`;
-- the result table, the first of B2's candidate names that exists.
-
-It reads only the headers of all files first, so every future is written with
-the same columns: `Future_ID`, `Named_Future`, `Sample`, the set columns that
-occur (`REGION`, `YEAR`, `TECHNOLOGY`, `FUEL`, `EMISSION`,
-`MODE_OF_OPERATION`, `TIMESLICE`, `STORAGE`, `SEASON`, `DAYTYPE`,
-`DAILYTIMEBRACKET`), then the variables with `Export` = Y, in the order of the
-Outputs sheet. Then, one future at a time, it keeps the rows where at least one
-exported variable has a value, adds the three identity columns from
-`RDM_Experiment_Design.csv`, and appends them. Memory use is therefore set by
-the largest single future, not by the number of futures.
-
-| File | Rows |
+| Module | Role |
 |---|---|
-| `RDM_Inputs.csv` | the exported input parameters as B2 recorded them in `<future>_0_Input.csv` |
-| `RDM_Outputs.csv` | the exported result variables of each solved future |
-| `RDM_Run_Status.csv` | one row per future: `solved` (a result table exists), `compiled` (only the input table exists) or `missing` (neither), with both file paths |
-
-The final solver datafile,
-`Executables/<future>_0/Pre_processed_<future>_0_StorageDelayN5_OpenBCK_RMCarefulXLSX.txt`,
-is the authority on what the solver saw: B2's model-file adjustments act on it
-after the input tables are written.
-
-`rdm collect --run <Run_Name>` repeats this step alone, for example after a run
-that stopped part way. It takes the exported variables from
-`rdm_manifest.json`, not from the workbook. To export different variables
-without solving again, edit the Outputs sheet, run `rdm generate --overwrite`
-with the same `Run_Name` (it rewrites the run folder but leaves the solved
-futures in `Executables/` alone), then `rdm collect`.
-
-## Where everything is
-
-For the training setup, everything is under
-`<clone>/workspace/setups/unescap_training/`. For South Asia, the default
-setup, the same folders sit directly under `<clone>/workspace/`.
-
-```text
-rdm/<Run_Name>/                         the run folder (steps 3 and 6)
-  interface.xlsx  futures.yaml  rdm_manifest.json
-  RDM_Experiment_Design.csv  RDM_Inputs.csv  RDM_Outputs.csv  RDM_Run_Status.csv
-  scenarios/<future>/scenario.yaml
-preparation/A1_Outputs/
-  _post_a2_snapshot_<root>/             base model after A2 (built once)
-  A1_Outputs_<root>/                    the root after its A3 rules
-  A1_Outputs_<future>/                  the future's A-O workbooks and edit log
-compilation/A2_Output_Params/<future>/  B1 parameter CSVs
-execution/A2_Outputs_Params_otoole/<future>/   otoole CSVs
-execution/Executables/<future>_0/       datafiles, LP, solution, input and result tables
-logs/<run-id>/run.log                   the log of each pipeline run
-```
-
-## Troubleshooting
-
-| Message | Meaning and fix |
-|---|---|
-| `interface workbook not found` | The path is read from the folder you run the command in. Give the full path, or copy the workbook there. |
-| `Uncertainty_Table has rows but Samples_Per_Future is 0` | Set `Samples_Per_Future` to 1 or more, or delete the uncertainty rows. |
-| `Base_Scenario ... is not a root of this setup` | Use one of the roots listed in the message; check `--setup`. |
-| `Apply_VRE_Ceilings is Y, but this setup defines no shared VRE ceilings` | Use Auto or N (the training setup has none). |
-| `future name(s) ... are already registered scenarios` | Choose Future_IDs that are not existing scenario names. |
-| `run folder exists` | Change `Run_Name`, or add `--overwrite`. |
-| `Scenario F02: the edit to ... changed nothing. ... Did you mean ...?` | A selector, parameter or year does not exist in the root. Fix the named row; the edit's note in `scenarios/F02/scenario.yaml` gives the workbook row. |
-| A future is `compiled` in `RDM_Run_Status.csv` after a full run | Its solve did not finish. Read `logs/<run-id>/run.log` for the solver message. |
-| `rdm` is an unknown command | The environment runs another OSTRAM folder. `python -c "import ostram; print(ostram.__file__)"` shows which; run `pip install -e .` from this clone. |
-
-## Code map
-
-| Module | Main functions |
-|---|---|
-| `ostram/rdm/interface.py` | `write_template` (the workbook and its dropdowns), `read_interface` (the checks of step 1), the `Interface`, `Future`, `Change` and `Uncertainty` records |
-| `ostram/rdm/design.py` | `latin_hypercube`, `sample_values`, `change_to_edits`, `expand_futures`, `write_run_folder` |
-| `ostram/rdm/collect.py` | `execution_params`, `future_folder`, `clear_future_folders`, `collect_run` |
-| `ostram/rdm/cli.py` | the `template`, `generate`, `run` and `collect` subcommands |
-| `ostram/pipeline/scenarios/registry.py` | `load_futures` and the `OSTRAM_RDM_FUTURES` overlay in `load_registry` |
-| `ostram/pipeline/scenarios/scenario_edits.py` | `apply_demand_edit` and the demand workbook in `build_scenario` |
-| `ostram/pipeline/scenarios/materializer.py` | builds each future from its own config root |
-| `tests/regression/test_rdm.py` | solver-free tests of all of the above |
-
-## Design choices
-
-- **A future is a derived scenario.** The edits, the edit log, the error
-  messages and B1/B2 are the ones the delivered scenarios already use, so a
-  future behaves exactly like a hand-written scenario and can be promoted to one
-  by copying its `scenario.yaml` into `config/scenarios/`.
-- **The futures live in the workspace, not in `config/`.** `config/` holds
-  reviewed, committed scenarios; generated futures would bury them. The
-  environment variable registers the futures for one run only.
-- **Layered sampling with common random numbers.** Each named future is a
-  storyline; the samples test how robust that storyline is to the remaining
-  uncertainty, and sharing the draws across futures keeps the comparison fair.
-- **Checks before any work.** Reading the whole workbook first means a long run
-  never stops on a typing error in row 40.
+| `ostram/rdm/interface.py` | Writes the template; reads and checks a workbook (6.1) |
+| `ostram/rdm/design.py` | Lists the futures, samples, writes the edits and the run folder (6.3–6.6) |
+| `ostram/rdm/collect.py` | Clears old result folders (7.2) and collects the CSVs (7.4) |
+| `ostram/rdm/cli.py` | The `template`, `generate`, `run` and `collect` commands |
+| `ostram/pipeline/scenarios/registry.py` | Registers the futures while `OSTRAM_RDM_FUTURES` is set (7.3) |
+| `ostram/pipeline/scenarios/scenario_edits.py` | Applies the edits, including demand edits (7.3, A3) |
+| `tests/regression/test_rdm.py` | Tests of all of the above, without a solver |

@@ -9,6 +9,10 @@ CSV and one output CSV for the whole set.
 You work only in the workbook. Nothing under `config/` or `inputs/` changes:
 each run lives in its own folder, `<workspace>/rdm/<Run_Name>/`.
 
+First time? Follow [RDM step by step](rdm-pipeline.md): it goes from a fresh
+clone to the results, and explains what happens inside at each step. This page
+is the short reference.
+
 ## Quick start
 
 ```powershell
@@ -138,8 +142,8 @@ are reused by the next run with the same Future_IDs. `rdm run` deletes each
 future's `Executables/<future>_0` folder before it starts, so a future that
 fails or is only compiled never shows an earlier run's results.
 
-The [RDM pipeline in detail](rdm-pipeline.md) page follows a run step by step
-and lists where every file comes from.
+The [RDM step by step](rdm-pipeline.md) page walks through a run from a fresh clone,
+explaining what happens inside at each step.
 
 ## How the futures reach the pipeline
 
