@@ -15,6 +15,7 @@ import csv
 import io
 import json
 from pathlib import Path
+import shutil
 from typing import Sequence
 
 import pandas as pd
@@ -46,14 +47,40 @@ def execution_params(execution_workspace: Path) -> dict:
     return params
 
 
+def future_folder(execution_workspace: Path, params: dict, future: str) -> Path:
+    """Return B2's folder for ``future``: ``<Executables>/<future>_0``."""
+
+    folder = Path(params.get("executables", "Executables"))
+    if not folder.is_absolute():
+        folder = execution_workspace / folder
+    return folder / f"{future}_0"
+
+
+def clear_future_folders(futures: Sequence[str], execution_workspace: Path | str | None = None) -> list[Path]:
+    """Delete the B2 folders of ``futures`` left by an earlier run and return them.
+
+    B2 reuses an existing ``<future>_0`` folder, so without this a future that
+    fails or is only compiled in this run would still show the result CSV of
+    an earlier run with the same Future_ID.  Earlier runs keep their results
+    in their own run folders.
+    """
+
+    workspace = Path(execution_workspace) if execution_workspace else resolve_paths().execution_workspace
+    params = execution_params(workspace)
+    removed = []
+    for future in futures:
+        folder = future_folder(workspace, params, future)
+        if folder.is_dir():
+            shutil.rmtree(folder)
+            removed.append(folder)
+    return removed
+
+
 def future_files(execution_workspace: Path, params: dict, future: str) -> tuple[Path | None, Path | None]:
     """Return the (input CSV, output CSV) of ``future``; either is None when absent."""
 
     name = f"{future}_0"
-    folder = Path(params.get("executables", "Executables"))
-    if not folder.is_absolute():
-        folder = execution_workspace / folder
-    folder = folder / name
+    folder = future_folder(execution_workspace, params, future)
     input_path = folder / f"{name}_Input.csv"
     output_path = next(
         (folder / candidate for candidate in active_output_csv_candidates(params, name)

@@ -335,6 +335,22 @@ class CollectTests(unittest.TestCase):
             self.assertEqual(list(outputs["TotalCapacityAnnual"]), [3.0])
             self.assertNotIn("RateOfActivity", outputs.columns)
 
+    def test_clear_removes_only_the_named_future_folders(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            execution = Path(tmp)
+            (execution / "Config_MOMF_T1_AB.yaml").write_text(yaml.safe_dump({
+                "executables": "Executables", "preprocess_data_name": "Pre_processed_",
+                "output_files": "_output",
+            }))
+            for name in ("F01_0", "F02_0", "B_Optimised_VRE_0"):
+                (execution / "Executables" / name).mkdir(parents=True)
+                (execution / "Executables" / name / "old_output.csv").write_text("x")
+            removed = collect.clear_future_folders(["F01", "F09"], execution)
+            self.assertEqual([p.name for p in removed], ["F01_0"])
+            self.assertFalse((execution / "Executables" / "F01_0").exists())
+            self.assertTrue((execution / "Executables" / "F02_0").exists())
+            self.assertTrue((execution / "Executables" / "B_Optimised_VRE_0").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,7 +31,7 @@ import yaml
 
 from ostram.paths import resolve_paths
 from ostram.pipeline.scenarios.registry import FUTURES_ENV, load_registry
-from ostram.rdm.collect import collect_run
+from ostram.rdm.collect import clear_future_folders, collect_run
 from ostram.rdm.design import write_run_folder
 from ostram.rdm.interface import Interface, InterfaceError, read_interface, write_template
 
@@ -205,6 +205,9 @@ def _report(summary: dict) -> None:
 def cmd_run(args: argparse.Namespace) -> int:
     interface = read_interface(args.interface)
     run_dir, names = _generate(interface, overwrite=args.overwrite)
+    cleared = clear_future_folders(names)
+    if cleared:
+        print(f"Cleared {len(cleared)} result folder(s) left by an earlier run of the same Future_IDs.")
     code = _run_pipeline(run_dir / "futures.yaml", names, args)
     summary = collect_run(run_dir)
     _report(summary)
