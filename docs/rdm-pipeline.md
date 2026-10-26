@@ -147,14 +147,31 @@ python -m ostram --setup unescap_training rdm template --out Interface_OSTRAM_RD
 
 or copy a workbook you already have into your OSTRAM folder.
 
+**Where the workbook lives.** Keep it in your OSTRAM folder, the root of the
+clone, where you run every command. That is where the command above writes
+it, and where `--interface Interface_OSTRAM_RDM.xlsx` looks for it.
+
+| | Where | Who writes it |
+|---|---|---|
+| Your workbook, the one you edit | `<your OSTRAM folder>\Interface_OSTRAM_RDM.xlsx` | You (or `rdm template`) |
+| The run's copy, a record only | `workspace\setups\unescap_training\rdm\<Run_Name>\interface.xlsx` | `rdm generate` and `rdm run`, at every run |
+
+You never move the workbook into `workspace\`: each run reads your workbook
+from the root folder and copies it into its run folder by itself. Always edit
+your workbook in the root folder, not the copy: the next run reads the root
+folder's workbook, and `--overwrite` replaces the copy.
+
+A workbook elsewhere works too, with its full path in quotes:
+`--interface "<another folder>\test01.xlsx"`. In the root folder, `git status`
+lists it as untracked; do not commit it.
+
 **What happens inside.** The template has six visible sheets (README, Setup,
 Futures, Future_Changes, Uncertainty_Table, Outputs) and a hidden `Lists`
 sheet with the dropdown values. Three sheets come pre-filled with the worked
 example of step 5, starting at row 2: 3 rows on Futures (F00, F01, F02),
 3 on Future_Changes and 2 on Uncertainty_Table (X1, X2). Overwrite or delete
-those rows with your own; `--blank` writes the template without them. The
-`interface.xlsx` in a run folder is a copy of the workbook that run used, not
-the template. To fill the Selector dropdown,
+those rows with your own; `--blank` writes the template without them. To fill
+the Selector dropdown,
 it reads the technology and fuel names of the root scenario from
 `workspace\setups\unescap_training\preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\`.
 
@@ -163,8 +180,8 @@ command says the selector dropdown is empty. The workbook still works: type the
 names, or write the template again after step 7 has run once. `--blank` leaves
 out the worked example.
 
-The command looks for files relative to the folder you are in, so keep the
-workbook in your OSTRAM folder or give its full path in quotes.
+`interface workbook not found` means the workbook is not in the folder you
+ran the command from: `cd` to your OSTRAM folder, or give the full path.
 
 ---
 
