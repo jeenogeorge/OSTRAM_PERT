@@ -147,6 +147,20 @@ python -m ostram --setup unescap_training rdm template --out Interface_OSTRAM_RD
 
 or copy a workbook you already have into your OSTRAM folder.
 
+This command only writes an Excel file; nothing runs yet.
+
+| Part | Meaning |
+|---|---|
+| `python -m ostram` | Run OSTRAM |
+| `--setup unescap_training` | Use the training model, so the dropdowns list its technologies and fuels |
+| `rdm template` | The RDM action "write a new interface workbook" (the others are `generate`, `run` and `collect`) |
+| `--out Interface_OSTRAM_RDM.xlsx` | The workbook's file name, written in the folder you are in |
+
+The file name is not the run name. The run name is `Run_Name` on the
+workbook's Setup sheet, which you set in step 5; each run writes its results to
+the folder `rdm\<Run_Name>\`. One workbook can give many runs: change
+`Run_Name`, save, run again.
+
 **Where the workbook lives.** Keep it in your OSTRAM folder, the root of the
 clone, where you run every command. That is where the command above writes
 it, and where `--interface Interface_OSTRAM_RDM.xlsx` looks for it.
@@ -154,7 +168,7 @@ it, and where `--interface Interface_OSTRAM_RDM.xlsx` looks for it.
 | | Where | Who writes it |
 |---|---|---|
 | Your workbook, the one you edit | `<your OSTRAM folder>\Interface_OSTRAM_RDM.xlsx` | You (or `rdm template`) |
-| The run's copy, a record only | `workspace\setups\unescap_training\rdm\<Run_Name>\interface.xlsx` | `rdm generate` and `rdm run`, at every run |
+| The run's copy, a record only | `workspace\setups\unescap_training\rdm\<Run_Name>\interface.xlsx`, with `<Run_Name>` from the Setup sheet | `rdm generate` and `rdm run`, at every run |
 
 You never move the workbook into `workspace\`: each run reads your workbook
 from the root folder and copies it into its run folder by itself. Always edit
