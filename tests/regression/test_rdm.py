@@ -352,5 +352,63 @@ class CollectTests(unittest.TestCase):
             self.assertTrue((execution / "Executables" / "B_Optimised_VRE_0").exists())
 
 
+class SolverBehaviourTests(unittest.TestCase):
+    """B2 treats RDM futures like their root, and keeps going past a failed one."""
+
+    def _futures_env(self, tmp: Path) -> dict:
+        spec = interface.read_interface(_template(tmp, {("Setup", "B4"): 1}))
+        run_dir = tmp / "rdm" / spec.run_name
+        design.write_run_folder(spec, run_dir, apply_vre_ceilings=False)
+        return {registry_module.FUTURES_ENV: str(run_dir / "futures.yaml")}
+
+    def test_futures_use_their_roots_solver_settings(self):
+        from ostram.pipeline.execution import orchestrator
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env = self._futures_env(Path(tmp))
+            with mock.patch.dict(os.environ, env), \
+                    mock.patch("ostram.pipeline.scenarios.registry.resolve_paths") as paths:
+                paths.return_value.scenario_registry = TRAINING_REGISTRY
+                self.assertEqual(orchestrator.solver_settings_scenario("F01"), "B_Optimised_VRE")
+                self.assertEqual(orchestrator.solver_settings_scenario("F01_s001"), "B_Optimised_VRE")
+                self.assertEqual(orchestrator.solver_settings_scenario("B_Optimised_VRE"), "B_Optimised_VRE")
+        with mock.patch.dict(os.environ, {registry_module.FUTURES_ENV: ""}):
+            self.assertEqual(orchestrator.solver_settings_scenario("F01"), "F01")
+
+    def _plan(self, scenarios):
+        from ostram.pipeline.execution import orchestrator
+
+        return orchestrator.B2RunPlan(
+            here=Path("."), params={"execute_model": True, "create_matrix": True, "parallel": False},
+            params_a2={}, scenarios=scenarios, main_scenario_name="", base_input_path="",
+            template_path="", base_output_path="",
+        )
+
+    def _dependencies(self, solved):
+        def main_executer(params, scenario, here):
+            if scenario == "F01":
+                raise RuntimeError("CBC did not produce an optimal solution")
+            solved.append(scenario)
+        return mock.Mock(main_executer=main_executer)
+
+    def test_a_failed_future_does_not_stop_the_others(self):
+        from ostram.pipeline.execution import orchestrator
+
+        solved: list[str] = []
+        with mock.patch.dict(os.environ, {registry_module.FUTURES_ENV: "futures.yaml"}):
+            with self.assertRaisesRegex(RuntimeError, "1 future\\(s\\) failed in B2: F01"):
+                orchestrator.run_execution_stage(self._plan(["F00", "F01", "F02"]), self._dependencies(solved))
+        self.assertEqual(solved, ["F00", "F02"])
+
+    def test_other_runs_still_stop_at_the_first_failure(self):
+        from ostram.pipeline.execution import orchestrator
+
+        solved: list[str] = []
+        with mock.patch.dict(os.environ, {registry_module.FUTURES_ENV: ""}):
+            with self.assertRaisesRegex(RuntimeError, "CBC did not produce"):
+                orchestrator.run_execution_stage(self._plan(["F00", "F01", "F02"]), self._dependencies(solved))
+        self.assertEqual(solved, ["F00"])
+
+
 if __name__ == "__main__":
     unittest.main()
