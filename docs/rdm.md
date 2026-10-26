@@ -158,7 +158,11 @@ registry is unchanged.
 B2 solves the futures one after another unless `parallel: True` is set in the
 execution configuration (see [configuration](configuration.md)). A future uses
 its root's entries in `cbc_primal_tolerance_by_scenario` and
-`cplex_numerical_emphasis_scenarios`, since it has the root's numerics. A
+`cplex_numerical_emphasis_scenarios`, since it has the root's numerics. With
+CBC, a future is solved with primal simplex (`-primalS`): CBC's default dual
+simplex can cycle for hours on these storage models, and futures cannot be
+tuned one by one. `rdm_cbc_simplex: dual` in the execution configuration
+restores the default. A
 future that fails is recorded and the next one still runs; the run then ends
 with an error that names the failed futures, and they show as `compiled` in
 `RDM_Run_Status.csv`. Outside an RDM run, B2 still stops at the first failure.
