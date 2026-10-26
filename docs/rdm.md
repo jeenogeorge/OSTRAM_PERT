@@ -156,7 +156,12 @@ A3, B1 and B2 treat the futures exactly like the scenarios of
 registry is unchanged.
 
 B2 solves the futures one after another unless `parallel: True` is set in the
-execution configuration (see [configuration](configuration.md)).
+execution configuration (see [configuration](configuration.md)). A future uses
+its root's entries in `cbc_primal_tolerance_by_scenario` and
+`cplex_numerical_emphasis_scenarios`, since it has the root's numerics. A
+future that fails is recorded and the next one still runs; the run then ends
+with an error that names the failed futures, and they show as `compiled` in
+`RDM_Run_Status.csv`. Outside an RDM run, B2 still stops at the first failure.
 
 ## Limits
 

@@ -460,7 +460,7 @@ in `config\` or `inputs\` changes. The stages:
 | **A3, each future** | Copies the root's workbooks to `A1_Outputs_<future>`; applies the shared VRE ceilings when switched on; applies the future's edits in order (technology edits to `A-O_Parametrization.xlsx`, demand edits to `A-O_Demand.xlsx`); re-applies the base-year pin where the setup uses one; writes an edit log of every changed cell. | `preparation\A1_Outputs\A1_Outputs_F02\` and its `apply_patches_CHANGES_<time>.json` |
 | **B1** | Turns each future's workbooks into OSeMOSYS parameter CSVs. | `compilation\A2_Output_Params\F02\` |
 | **B2, datafile** | Converts the CSVs into the solver datafile with otoole and applies the model-file adjustments (storage delay, open backstop, reserve-margin fallbacks). | `execution\Executables\F02_0\Pre_processed_F02_0_StorageDelayN5_OpenBCK_RMCarefulXLSX.txt` |
-| **B2, solve** | Writes the LP and solves it: CBC for the training model. Skipped with `--compile-only`. | `execution\Executables\F02_0\*.lp`, `*.sol` |
+| **B2, solve** | Writes the LP and solves it: CBC for the training model. Each future uses its root's solver settings (for the training model, the CBC tolerance 1e-9 of `B_Optimised_VRE`). A future that fails is recorded and B2 goes on to the next one. Skipped with `--compile-only`. | `execution\Executables\F02_0\*.lp`, `*.sol` |
 | **B2, results** | Writes the future's input table and result table. | `execution\Executables\F02_0\F02_0_Input.csv`, `...\Pre_processed_F02_0_..._output.csv` |
 
 The edit log is the place to confirm that a change did what you meant: it
@@ -484,7 +484,8 @@ takes most of the time. B2 solves one future after another unless
 |---|---|
 | `Scenario F02: the edit to ... changed nothing. ... Did you mean ...?` | A Selector, Parameter or year does not exist in the root. The message names the future and suggests the closest name; the note in `scenarios\F02\scenario.yaml` gives the workbook row. Fix the row and run again. |
 | The run stops part way | The CSVs are still written for the futures that finished. Read `logs\<run-id>\run.log` for the detail. |
-| A future is `compiled` after a full run | Its solve did not finish; the solver message is in the run log. |
+| `[FAILED] F01: CBC did not produce an optimal solution` in the log, and F01 is `compiled` in `RDM_Run_Status.csv` | F01's solve did not reach an optimum; the other futures still ran. Search the log for `F01` to see CBC's last lines. An objective running to huge negative values (−10²⁶) means numerical trouble, not wrong data. |
+| A failed future takes hours | CBC stops at `iteration_time` seconds (20000, about 5.5 hours, in `examples\unescap_training\config\execution\Config_MOMF_T1_AB.yaml`). A training future normally solves in about a minute; lower the value in your local copy to fail faster, and do not commit that change. |
 
 ---
 
