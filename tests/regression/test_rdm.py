@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -374,6 +375,51 @@ class SolverBehaviourTests(unittest.TestCase):
                 self.assertEqual(orchestrator.solver_settings_scenario("B_Optimised_VRE"), "B_Optimised_VRE")
         with mock.patch.dict(os.environ, {registry_module.FUTURES_ENV: ""}):
             self.assertEqual(orchestrator.solver_settings_scenario("F01"), "F01")
+
+    def _cbc_command(self, scenario, future_root=None):
+        """Return the CBC command B2 prepares for ``scenario``."""
+
+        from ostram.pipeline.execution import orchestrator
+        from tests.regression.test_b2_orchestration import _base_params
+
+        class Stop(Exception):
+            pass
+
+        dependencies = orchestrator.ScenarioExecutionDependencies(
+            run_process=lambda *a, **k: None, check_environment=lambda solver: None,
+            get_executable=lambda name: name, path_exists=lambda path: False,
+            remove_file=lambda path: None, python_executable=sys.executable,
+        )
+        real = orchestrator.SolverAdapter(dependencies)
+        captured = {}
+
+        class Recorder:
+            def prepare_command(self, solver, params, paths):
+                captured["command"] = real.prepare_command(solver, params, paths)
+                raise Stop
+
+        params = _base_params(solver="cbc", execute_model=True, create_matrix=True,
+                              cbc_primal_tolerance="1e-10",
+                              cbc_primal_tolerance_by_scenario={"B_Optimised_VRE": "1e-9"})
+        with mock.patch.object(orchestrator, "solver_settings_scenario",
+                               return_value=future_root or scenario):
+            with self.assertRaises(Stop):
+                orchestrator.execute_scenario(params, scenario, Path("."), dependencies,
+                                              solver_adapter=Recorder(),
+                                              matrix_runner=lambda *a: None)
+        return captured["command"]
+
+    def test_futures_get_their_roots_tolerance_and_primal_simplex(self):
+        future = self._cbc_command("F01", future_root="B_Optimised_VRE")
+        self.assertEqual(future[future.index("primalTolerance") + 1], "1e-9")
+        self.assertIn("-primalS", future)
+        self.assertLess(future.index("-primalS"), future.index("solve"))
+        root = self._cbc_command("B_Optimised_VRE")
+        self.assertEqual(root[root.index("primalTolerance") + 1], "1e-9")
+        self.assertNotIn("-primalS", root)
+        other = self._cbc_command("A_Calibrated_BAU")
+        self.assertEqual(other[other.index("primalTolerance") + 1], "1e-10")
+        self.assertNotIn("-primalS", other)
 
     def _plan(self, scenarios):
         from ostram.pipeline.execution import orchestrator

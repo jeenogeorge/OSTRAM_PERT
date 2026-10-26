@@ -891,6 +891,9 @@ class SolverAdapter:
                 "randomCbcSeed", str(cbc_random_seed),
                 "primalTolerance", str(params.get("cbc_primal_tolerance", "1e-8")),
                 "dualTolerance", "1e-8",
+                # "-primalS" solves the LP with primal simplex before "solve";
+                # absent, CBC uses its default (dual simplex), as before.
+                *(["-primalS"] if params.get("cbc_simplex") == "primal" else []),
                 "-seconds", str(params["iteration_time"]),
                 "solve", "-solu", f"{paths.output_file}.sol",
             ]
@@ -1086,6 +1089,12 @@ def execute_scenario(
         if settings_name in tolerances:
             # Numerical recovery belongs to this case, not subsequent cases.
             params = {**params, "cbc_primal_tolerance": tolerances[settings_name]}
+        if settings_name != scenario_name:
+            # An RDM future cannot be tuned by hand. CBC's default dual simplex
+            # can cycle without end on these storage LPs; primal simplex
+            # solved every tested training future. rdm_cbc_simplex: dual
+            # restores the default.
+            params = {**params, "cbc_simplex": params.get("rdm_cbc_simplex", "primal")}
     if solver == "cplex" and settings_name in params.get(
         "cplex_numerical_emphasis_scenarios", ()
     ):
