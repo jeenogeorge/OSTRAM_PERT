@@ -244,15 +244,42 @@ In words:
   15 % higher from 2027 to 2050; and the price of coal in Bangladesh
   (`MINCOABGD`) doubles in every year.
 
-`Sheet` says which part of the model holds the number:
+`Sheet`, `Selector` and `Parameter` point to cells in the **model workbooks
+OSTRAM builds for the root scenario**. After the first run (step 7), they are
+in
 
-| Sheet | Holds |
+```text
+workspace\setups\unescap_training\preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\
+```
+
+(the folder of the root named in `Base_Scenario`). `Sheet` is a sheet of one of
+two files there:
+
+| Workbook | Sheet | Holds |
+|---|---|---|
+| `A-O_Parametrization.xlsx` | Secondary Techs | power plants, storage, interconnectors (`PWR…`, `TRN…`) |
+| | Primary Techs | fuel supply (`MIN…`) |
+| | Demand Techs | the grid tiers between plants and demand |
+| | VariableCost | fuel prices and other running costs |
+| `A-O_Demand.xlsx` | Demand_Projection | electricity demand, one row per demand fuel |
+
+An edit changes the cells where all of these match. For F01's solar row:
+
+| In your RDM workbook | In `A-O_Parametrization.xlsx` |
 |---|---|
-| Secondary Techs | power plants, storage, interconnectors (`PWR…`, `TRN…`) |
-| Primary Techs | fuel supply (`MIN…`) |
-| Demand Techs | the grid tiers between plants and demand |
-| VariableCost | fuel prices and other running costs |
-| Demand_Projection | electricity demand, one row per demand fuel |
+| `Sheet` = Secondary Techs | the sheet Secondary Techs |
+| `Selector` = PWRSPV, `Selector_Type` = Tech_Prefix | rows whose **Tech** column starts with `PWRSPV` |
+| `Parameter` = CapitalCost | … and whose **Parameter** column is `CapitalCost` |
+| `Year_From`, `Year_To` | the year columns (2023 … 2050) |
+
+On `Demand_Projection` the Selector matches the **Fuel/Tech** column instead.
+Open these workbooks to find the exact names to type. Each future works on its
+own copy, `A1_Outputs_<future>\`, so the root's workbooks never change; open
+`A1_Outputs_F01\A-O_Parametrization.xlsx` after a run to see F01's values.
+
+These are not the input file `inputs\scenarios\OSTRAM_Scenario_Inputs.xlsx`,
+whose sheets have similar names with underscores (`Secondary_Techs`): that is
+the raw input OSTRAM builds the root from, and RDM never changes it.
 
 The operations are `Multiply`, `Multiply_Ramp`, `Set` and `Copy_From_Tech`
 (copy every year from the technology named in Value). Blank years mean every
