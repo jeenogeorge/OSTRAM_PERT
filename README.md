@@ -54,9 +54,10 @@ lists the delivered scenarios: the support scenario `BAU` and the 17
 decision scenarios.
 
 To run many futures for Robust Decision Making, describe them in one Excel
-workbook and let `rdm` build, solve and collect them; the
-[RDM step by step](docs/rdm-pipeline.md) page walks through a first run, and
-[RDM futures](docs/rdm.md) is the reference.
+workbook and let `rdm` build, solve and collect them. Start with the
+[OSTRAM and RDM user guide](docs/rdm-pipeline.md): what each folder holds,
+which script each stage runs, how to build and solve the baseline, then the
+RDM futures. [RDM futures](docs/rdm.md) is the short reference.
 
 ```powershell
 python -m ostram rdm template --out Interface_OSTRAM_RDM.xlsx
