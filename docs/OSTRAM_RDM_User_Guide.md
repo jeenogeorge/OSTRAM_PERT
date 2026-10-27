@@ -584,7 +584,7 @@ takes about one to three minutes, so the six-future example runs in about
 
 | What you see | Meaning and fix |
 |---|---|
-| `Scenario F02: the edit to ... changed nothing. ... Did you mean ...?` | A Selector, Parameter or year is not in the root. Fix the workbook row named in the note of `scenarios\F02\scenario.yaml`. |
+| `[3/5 · A3] Building selected scenarios \| FAILED`, and in the run log `Scenario F02: the edit to ... changed nothing. ... Did you mean ...?` | A Selector, Parameter or year is not in the root. The console shows only the failed stage; open the run log it names for the message. Fix the workbook row named in the note of `scenarios\F02\scenario.yaml`. An A3 error stops every future of the run. |
 | `[FAILED] F01: CBC did not produce an optimal solution` in the log; F01 `compiled` in the status file | F01's solve did not reach an optimum; the other futures still ran. Search the log for `F01`. |
 | A failed future took hours | CBC stops at `iteration_time` (20000 s) in `examples\unescap_training\config\execution\Config_MOMF_T1_AB.yaml`. Lower it in your local copy to fail faster; do not commit that. |
 | `.lp`, `.sol` or `_output.csv` missing | The run was `--compile-only`, or the future failed; see the status file and the log. |
