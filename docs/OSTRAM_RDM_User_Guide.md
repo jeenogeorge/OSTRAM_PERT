@@ -117,6 +117,33 @@ for South Asia, directly under `workspace\`.
 | `rdm\<Run_Name>\` | One RDM run: futures, experiment design, RDM CSVs. | `rdm generate`, `rdm run` |
 | `logs\<run-id>\run.log` | The full log of one run: every child command and its output. | `run`, `rdm run` |
 
+### 1.5 Folder names do not match the stage labels
+
+The workspace folder names come from the original model-building scripts
+and predate the stage labels A1 to B2. Read them by what they hold, not by
+their prefix:
+
+- `preparation\A1_Outputs\` is not only A1's output. It holds the A1 + A2
+  snapshots, every scenario and future that A3 builds, and the completed
+  workbooks that B1 adds to each scenario's folder.
+- `compilation\A2_Output_Params\` is **B1's** output, not A2's.
+- `execution\A2_Outputs_Params_otoole\` is **B2's** output, not A2's.
+
+The chain, as folders:
+
+| Stage | Reads | Writes |
+|---|---|---|
+| A1 + A2 | `inputs\osemosys_global\` (the raw OSeMOSYS Global CSVs) | `preparation\A1_Outputs\_post_a2_snapshot_<root>\` (built once, reused by later runs) |
+| A3 | the snapshot, and for futures the run folder's `scenario.yaml` | `preparation\A1_Outputs\A1_Outputs_<scenario>\`: the A-O workbooks and, for derived scenarios and futures, the edit log `apply_patches_CHANGES_<time>.json` inside that folder |
+| B1 | `A1_Outputs_<scenario>\` | `compilation\A2_Output_Params\<scenario>\` (OSeMOSYS parameter CSVs); the `*_COMPLETED.xlsx` workbooks in `A1_Outputs_<scenario>\` |
+| B2 | `compilation\A2_Output_Params\<scenario>\` | `execution\A2_Outputs_Params_otoole\<scenario>\`, then `execution\Executables\<scenario>_0\` (datafile, LP, solution, results) |
+| `rdm run` (collect) | `execution\Executables\<future>_0\` of every future | `rdm\<Run_Name>\RDM_Inputs.csv`, `RDM_Outputs.csv`, `RDM_Run_Status.csv` |
+
+The CSVs in `inputs\osemosys_global\` and in `compilation\A2_Output_Params\`
+have the same form (one OSeMOSYS parameter per file) but sit at opposite ends
+of the chain: the first are the starting data, the second are one
+scenario's finished parameters. B1 never writes into `inputs\`.
+
 ---
 
 ## Part 2. The pipeline

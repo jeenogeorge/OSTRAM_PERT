@@ -104,6 +104,13 @@ what it checks.
 | `execution/Executables/<scenario>_0/` | The datafiles, the adjusted model file, the LP, the solution and `Outputs/`. | B2 |
 | `logs/<run-id>/run.log` | The log of one `run`. | `python -m ostram run` |
 
+The folder names predate the stage labels and do not match them:
+`preparation/A1_Outputs/` holds the output of A1, A2 and A3 (and B1 adds the
+completed workbooks to each scenario's folder there);
+`compilation/A2_Output_Params/` is written by B1, and
+`execution/A2_Outputs_Params_otoole/` by B2. Go by the "Written by" column,
+not by the prefix.
+
 ## Abbreviations
 
 | Abbreviation | Meaning |
