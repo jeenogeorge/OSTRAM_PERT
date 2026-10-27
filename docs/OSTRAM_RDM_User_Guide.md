@@ -612,10 +612,16 @@ cost = outputs.groupby("Future_ID")["TotalDiscountedCost"].sum().rename("cost")
 print(design.merge(cost, on="Future_ID"))
 ```
 
-For the worked example the costs are about 540 000 (F00), 539 600 (F01,
-cheaper solar) and 632 000 (F02, higher demand and dearer coal). F00 should
-match the `B_Optimised_VRE` solved in step 3.5 when the setup applies no
-ceilings, as in training.
+For the worked example this prints about 566 800 (F00), 566 200 (F01,
+cheaper solar) and 658 600 (F02, higher demand and dearer coal). F00 matches
+the `B_Optimised_VRE` solved in step 3.5 when the setup applies no ceilings,
+as in training.
+
+Compare futures with these reported costs, not with the `objective value` that
+CBC prints in the log. B2 reconciles the reported `TotalDiscountedCost` with
+the compiled costs (the record is
+`execution\Executables\<future>_0\*_cost_reconciliation.json`), so the two
+numbers differ: for F00 the log shows 540 166 and the CSV 566 798.
 
 ### Step 4.6. Change something and run again
 
