@@ -4,6 +4,11 @@ This guide takes you from a fresh clone to a finished RDM run. It is written
 for someone who runs the model, and who also wants to know **which script runs
 when, what it reads and what it writes**.
 
+This guide is also a single HTML page, `docs/html/OSTRAM_RDM_User_Guide.html`,
+and every page of the documentation is in
+`docs/html/OSTRAM_Complete_Documentation.html`. Both are rebuilt from the
+Markdown pages with `python tools/build_html_docs.py --bake`.
+
 It has four parts:
 
 1. [The repository](#part-1-the-repository): what each folder holds and which

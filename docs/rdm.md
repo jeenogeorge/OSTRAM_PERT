@@ -9,7 +9,7 @@ CSV and one output CSV for the whole set.
 You work only in the workbook. Nothing under `config/` or `inputs/` changes:
 each run lives in its own folder, `<workspace>/rdm/<Run_Name>/`.
 
-First time? Follow the [OSTRAM and RDM user guide](rdm-pipeline.md): it goes
+First time? Follow the [OSTRAM and RDM user guide](OSTRAM_RDM_User_Guide.md): it goes
 from a fresh clone through the baseline to the RDM results, and explains which
 script runs at each step. This page is the short reference.
 
@@ -142,7 +142,7 @@ are reused by the next run with the same Future_IDs. `rdm run` deletes each
 future's `Executables/<future>_0` folder before it starts, so a future that
 fails or is only compiled never shows an earlier run's results.
 
-The [OSTRAM and RDM user guide](rdm-pipeline.md) walks through a run from a
+The [OSTRAM and RDM user guide](OSTRAM_RDM_User_Guide.md) walks through a run from a
 fresh clone, explaining what happens inside at each step.
 
 ## How the futures reach the pipeline
