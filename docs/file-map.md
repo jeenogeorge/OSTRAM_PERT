@@ -26,6 +26,8 @@ reads it. Stage names and other terms are in the [glossary](glossary.md).
 | `tests/` | The solver-free tests in `tests/regression/` and `tests/validation/`. | `python -m unittest discover -s tests -p 'test_*.py'`. |
 | `timeslice_module/` | The timeslice workbook generator, its inputs and the reference workbook of the adopted fabric. The pipeline does not read it. | People, by hand. See its README. |
 | `tools/generate_scenario_catalogue.py` | Regenerates the scenario catalogue page. | `tests/regression/test_scenario_catalogue.py`. |
+| `tools/build_html_docs.py` | Builds `docs/html/OSTRAM_RDM_User_Guide.html` and `docs/html/OSTRAM_Complete_Documentation.html` from the pages in `docs/`. | People, after changing a page; `tests/regression/test_html_docs.py`. |
+| `docs/html/` | The two generated HTML versions of the documentation. | People, in a browser. |
 | `workspace/` | Generated files. Git ignores it. | Every stage writes here. |
 
 ## config
@@ -76,7 +78,7 @@ what it checks.
 | `ostram/examples.py` | The training example commands `example prepare` and `example report`. |
 | `ostram/terminal.py` | The run display and the run log. |
 | `ostram/validation/setup_domain.py` | Checks of a setup's compiled domain. |
-| `ostram/rdm/` | RDM futures: `interface.py` writes and reads the Excel interface, `design.py` expands the futures and samples and writes the run folder, `collect.py` gathers the RDM CSVs and `cli.py` is the `rdm` command. See [RDM futures](rdm.md) and [OSTRAM and RDM user guide](rdm-pipeline.md). |
+| `ostram/rdm/` | RDM futures: `interface.py` writes and reads the Excel interface, `design.py` expands the futures and samples and writes the run folder, `collect.py` gathers the RDM CSVs and `cli.py` is the `rdm` command. See [RDM futures](rdm.md) and [OSTRAM and RDM user guide](OSTRAM_RDM_User_Guide.md). |
 | `ostram/reporting/` | The training dashboard, the direction comparison and the summary workbook. |
 | `ostram/pipeline/orchestration.py` | `python -m ostram run`: the environment check, DVC, and the stages A1 to B2 in order. |
 | `ostram/pipeline/preparation/` | A1 in `base_inputs.py`, A2 in `transmission.py`, the country template and validation commands and the secondary-technology helpers. |
