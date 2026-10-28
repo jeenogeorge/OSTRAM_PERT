@@ -197,6 +197,9 @@ def _report(summary: dict) -> None:
           f"missing: {len(summary['missing'])}")
     if summary["missing"]:
         print(f"Missing futures: {', '.join(summary['missing'])}")
+    if summary.get("not_found"):
+        print("Ticked on the Outputs sheet but empty in every future (the model gives them no "
+              f"values), so not in the CSVs: {', '.join(summary['not_found'])}")
     for label, key in (("RDM inputs", "inputs"), ("RDM outputs", "outputs"), ("Run status", "status")):
         if summary.get(key):
             print(f"{label}: {summary[key]}")

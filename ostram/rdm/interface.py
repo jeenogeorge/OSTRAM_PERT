@@ -63,29 +63,67 @@ TECH_PARAMETERS = (
 )
 DEMAND_PARAMETERS = ("SpecifiedAnnualDemand",)
 
-# Columns of the B2 input and output CSVs, with the default export choice.
-# Timeslice-level variables are off by default to keep the CSVs small.
-INPUT_VARIABLES = {
-    "AvailabilityFactor": "Y", "CapacityFactor": "N", "CapacityToActivityUnit": "N",
-    "CapitalCost": "Y", "CapitalCostStorage": "Y", "EmissionActivityRatio": "Y",
-    "FixedCost": "Y", "InputActivityRatio": "N", "OperationalLife": "Y",
-    "OutputActivityRatio": "N", "ReserveMargin": "Y", "ResidualCapacity": "Y",
-    "ResidualStorageCapacity": "Y", "SpecifiedAnnualDemand": "Y",
-    "SpecifiedDemandProfile": "N", "TotalAnnualMaxCapacity": "Y",
-    "TotalAnnualMaxCapacityInvestment": "Y", "TotalAnnualMinCapacityInvestment": "Y",
-    "TotalTechnologyAnnualActivityUpperLimit": "Y", "VariableCost": "Y", "YearSplit": "N",
-}
-OUTPUT_VARIABLES = {
-    "AccumulatedNewCapacity": "Y", "AnnualEmissions": "Y", "AnnualFixedOperatingCost": "Y",
-    "AnnualTechnologyEmission": "Y", "AnnualVariableOperatingCost": "Y",
-    "CapitalInvestment": "Y", "CapitalInvestmentStorage": "Y", "Demand": "N",
-    "DiscountedCapitalInvestment": "Y", "DiscountedCostByTechnology": "Y",
-    "DiscountedOperationalCost": "Y", "NewCapacity": "Y", "NewStorageCapacity": "Y",
-    "OperatingCost": "Y", "ProductionByTechnology": "N",
-    "ProductionByTechnologyAnnual": "Y", "RateOfActivity": "N",
-    "TotalCapacityAnnual": "Y", "TotalDiscountedCost": "Y",
-    "TotalTechnologyAnnualActivity": "Y", "UseByTechnology": "N",
-}
+# The Outputs sheet lists every input parameter ("param") and result variable
+# ("result") of the model's otoole conversion file, with the sets each is
+# indexed by.  These are exported by default; every other variable is N, so
+# the RDM CSVs stay as small as before unless the user ticks more.
+DEFAULT_INPUT_EXPORTS = frozenset({
+    "AvailabilityFactor", "CapitalCost", "CapitalCostStorage", "EmissionActivityRatio",
+    "FixedCost", "OperationalLife", "ReserveMargin", "ResidualCapacity",
+    "ResidualStorageCapacity", "SpecifiedAnnualDemand", "TotalAnnualMaxCapacity",
+    "TotalAnnualMaxCapacityInvestment", "TotalAnnualMinCapacityInvestment",
+    "TotalTechnologyAnnualActivityUpperLimit", "VariableCost",
+})
+DEFAULT_OUTPUT_EXPORTS = frozenset({
+    "AccumulatedNewCapacity", "AnnualEmissions", "AnnualFixedOperatingCost",
+    "AnnualTechnologyEmission", "AnnualVariableOperatingCost", "CapitalInvestment",
+    "CapitalInvestmentStorage", "DiscountedCapitalInvestment", "DiscountedCostByTechnology",
+    "DiscountedOperationalCost", "NewCapacity", "NewStorageCapacity", "OperatingCost",
+    "ProductionByTechnologyAnnual", "TotalCapacityAnnual", "TotalDiscountedCost",
+    "TotalTechnologyAnnualActivity",
+})
+CONVERSION_FORMAT = Path(__file__).resolve().parents[1] / "resources" / "compilation" / "conversion_format.yaml"
+
+
+def _conversion_format() -> Path:
+    """The active setup's otoole conversion file, else the package's own copy."""
+
+    try:
+        from ostram.paths import resolve_paths
+        path = resolve_paths().compilation_resources / "conversion_format.yaml"
+        if path.is_file():
+            return path
+    except Exception:  # no project or setup context: fall back to the package file
+        pass
+    return CONVERSION_FORMAT
+
+
+def variable_catalogue() -> dict[str, dict[str, tuple[str, ...]]]:
+    """Return ``{"Input": {name: indices}, "Output": {name: indices}}``, sorted by name.
+
+    Read from the otoole conversion file, so the Outputs sheet offers exactly
+    the parameters and results B2 can write to the per-future CSVs.
+    """
+
+    import yaml
+
+    raw = yaml.safe_load(_conversion_format().read_text(encoding="utf-8")) or {}
+    out: dict[str, dict[str, tuple[str, ...]]] = {"Input": {}, "Output": {}}
+    for name, spec in sorted(raw.items(), key=lambda item: item[0].lower()):
+        kind = {"param": "Input", "result": "Output"}.get((spec or {}).get("type"))
+        if kind:
+            out[kind][name] = tuple(spec.get("indices") or ())
+    return out
+
+
+def _defaults(kind: str) -> dict[str, str]:
+    chosen = DEFAULT_INPUT_EXPORTS if kind == "Input" else DEFAULT_OUTPUT_EXPORTS
+    return {name: ("Y" if name in chosen else "N") for name in variable_catalogue()[kind]}
+
+
+# Name -> default export choice, for every variable of the model.
+INPUT_VARIABLES = _defaults("Input")
+OUTPUT_VARIABLES = _defaults("Output")
 
 SETUP_ROWS = (
     ("Run_Name", "rdm_run_01", "Folder name of this run under <workspace>/rdm/. Letters, digits, _ and -."),
@@ -108,6 +146,8 @@ UNCERTAINTY_COLUMNS = (
 )
 FUTURE_COLUMNS = ("Future_ID", "Name", "Description", "Run")
 OUTPUT_COLUMNS = ("Kind", "Variable", "Export")
+# Written for the reader's benefit only; read_interface ignores it.
+OUTPUT_INFO_COLUMN = "Indexed_By"
 
 
 class InterfaceError(ValueError):
@@ -320,14 +360,17 @@ def write_template(
     _validation(uncertainty, methods_ref, "H2:H2000")
 
     outputs = wb.create_sheet("Outputs")
-    _header(outputs, OUTPUT_COLUMNS, (10, 42, 9))
+    _header(outputs, (*OUTPUT_COLUMNS, OUTPUT_INFO_COLUMN), (10, 44, 9, 58))
+    catalogue = variable_catalogue()
     row = 2
     for kind, variables in (("Input", INPUT_VARIABLES), ("Output", OUTPUT_VARIABLES)):
         for name, export in variables.items():
             outputs.cell(row=row, column=1, value=kind)
             outputs.cell(row=row, column=2, value=name)
             outputs.cell(row=row, column=3, value=export)
+            outputs.cell(row=row, column=4, value=", ".join(catalogue[kind].get(name, ())))
             row += 1
+    outputs.auto_filter.ref = f"A1:D{row - 1}"
     _validation(outputs, yes_no_ref, f"C2:C{row}")
 
     if examples:
@@ -425,7 +468,10 @@ README_LINES = (
     "  Sampled uncertainties apply after the future's own changes, so a Multiply scales the future's path.",
     "",
     "OUTPUTS",
-    "  Export Y puts the input parameter or result variable in the RDM CSVs. Timeslice variables are large; they are N by default.",
+    "  Every input parameter and result variable of the model is listed, with the sets it is indexed by (Indexed_By).",
+    "  Export Y puts it in the RDM CSVs. Filter the sheet on Indexed_By to find, e.g., the FUEL- or EMISSION-keyed ones.",
+    "  Timeslice variables (TIMESLICE in Indexed_By) are large; they are N by default.",
+    "  A ticked variable the model leaves empty (no value in any future) is reported by collect and left out of the CSV.",
     "",
     "WHAT THE RUN WRITES  (<workspace>/rdm/<Run_Name>/)",
     "  RDM_Experiment_Design.csv  one row per future: its named future, sample number and the sampled value of every uncertainty.",
@@ -439,6 +485,19 @@ README_LINES = (
 # ---------------------------------------------------------------------------
 # Reader
 # ---------------------------------------------------------------------------
+def _closest(name: str, choices: Iterable[str]) -> str | None:
+    """The choice that ``name`` most likely misspells, ignoring case, or None."""
+
+    import difflib
+
+    choices = list(choices)
+    by_lower = {c.lower(): c for c in choices}
+    if name.lower() in by_lower:
+        return by_lower[name.lower()]
+    hits = difflib.get_close_matches(name.lower(), list(by_lower), n=1, cutoff=0.75)
+    return by_lower[hits[0]] if hits else None
+
+
 def _text(value) -> str:
     return "" if value is None else str(value).strip()
 
@@ -686,18 +745,28 @@ def read_interface(path: Path | str) -> Interface:
 
     # Outputs
     input_variables, output_variables = [], []
+    known = variable_catalogue()
     try:
         for number, row in _rows(wb["Outputs"], OUTPUT_COLUMNS):
             where = f"Outputs row {number}"
             if not _yes(row["Export"], where, "Export", problems, False):
                 continue
             kind, variable = _text(row["Kind"]).capitalize(), _text(row["Variable"])
-            if kind == "Input":
-                input_variables.append(variable)
-            elif kind == "Output":
-                output_variables.append(variable)
-            else:
+            if kind not in ("Input", "Output"):
                 problems.append(f"{where}: Kind must be Input or Output")
+                continue
+            if variable not in known[kind]:
+                other = "Output" if kind == "Input" else "Input"
+                if variable in known[other]:
+                    problems.append(f"{where}: {variable} is an {other.lower()} variable; set Kind to {other}")
+                else:
+                    hint = _closest(variable, known[kind])
+                    problems.append(
+                        f"{where}: {variable!r} is not an {kind.lower()} variable of the model"
+                        + (f"; did you mean {hint}?" if hint else "")
+                    )
+                continue
+            (input_variables if kind == "Input" else output_variables).append(variable)
     except InterfaceError as error:
         problems.extend(error.problems)
     wb.close()

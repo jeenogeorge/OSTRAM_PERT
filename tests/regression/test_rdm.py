@@ -78,6 +78,41 @@ class InterfaceTemplateTests(unittest.TestCase):
                          "'F09'", "'X9'", "Max must not be below Min"):
             self.assertIn(fragment, message)
 
+    def test_outputs_sheet_lists_every_model_variable_with_its_sets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = _template(Path(tmp))
+            rows = list(load_workbook(path)["Outputs"].iter_rows(values_only=True))
+        self.assertEqual(rows[0], ("Kind", "Variable", "Export", "Indexed_By"))
+        listed = {(r[0], r[1]): (r[2], r[3]) for r in rows[1:]}
+        catalogue = interface.variable_catalogue()
+        expected = {(k, v) for k in ("Input", "Output") for v in catalogue[k]}
+        self.assertEqual(set(listed), expected)
+        self.assertGreaterEqual(len(catalogue["Input"]), 50)
+        self.assertEqual(listed[("Input", "AccumulatedAnnualDemand")], ("N", "REGION, FUEL, YEAR"))
+        self.assertEqual(listed[("Input", "CapitalCost")][0], "Y")
+        self.assertIn("EMISSION", listed[("Input", "AnnualEmissionLimit")][1])
+
+    def test_ticking_a_variable_exports_it_and_typos_are_caught(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = _template(Path(tmp), {("Setup", "B4"): 1})
+            wb = load_workbook(path)
+            ws = wb["Outputs"]
+            row_of = {ws.cell(r, 2).value: r for r in range(2, ws.max_row + 1)}
+            ws.cell(row_of["AccumulatedAnnualDemand"], 3, "Y")
+            wb.save(path)
+            spec = interface.read_interface(path)
+            self.assertIn("AccumulatedAnnualDemand", spec.input_variables)
+
+            ws.cell(row_of["InputActivityRatio"], 2, "inputactivityratio")
+            ws.cell(row_of["InputActivityRatio"], 3, "Y")
+            ws.cell(row_of["TotalCapacityAnnual"], 1, "Input")
+            wb.save(path)
+            with self.assertRaises(InterfaceError) as caught:
+                interface.read_interface(path)
+        message = str(caught.exception)
+        self.assertIn("did you mean InputActivityRatio?", message)
+        self.assertIn("TotalCapacityAnnual is an output variable; set Kind to Output", message)
+
     def test_ramp_needs_both_years(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = _template(Path(tmp), {("Setup", "B4"): 1, ("Future_Changes", "H2"): None})
@@ -335,6 +370,10 @@ class CollectTests(unittest.TestCase):
             outputs = pd.read_csv(summary["outputs"])
             self.assertEqual(list(outputs["TotalCapacityAnnual"]), [3.0])
             self.assertNotIn("RateOfActivity", outputs.columns)
+            # ticked by default but absent from every future's CSV
+            self.assertIn("SpecifiedAnnualDemand", summary["not_found"])
+            self.assertNotIn("CapitalCost", summary["not_found"])
+            self.assertNotIn("TotalCapacityAnnual", summary["not_found"])
 
     def test_clear_removes_only_the_named_future_folders(self):
         with tempfile.TemporaryDirectory() as tmp:

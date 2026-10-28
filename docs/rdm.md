@@ -78,7 +78,7 @@ demand between 103.5 and 126.5 per cent of the root.
 | `Futures` | `Future_ID`, `Name`, `Description`, `Run` (Y/N). A future with no changes is the root itself, a baseline. |
 | `Future_Changes` | One row per change: `Future_ID`, `Sheet`, `Parameter`, `Selector_Type`, `Selector`, `Operation`, `Value`, `Year_From`, `Year_To`, `Note`. |
 | `Uncertainty_Table` | One row per ranged uncertainty: `X_ID`, `Name`, `Applies_To` (`ALL` or Future_IDs), the same target columns, `Method`, `Min`, `Max`, `Year_From`, `Year_To`, `Linked_To`, `Note`. |
-| `Outputs` | `Kind` (Input or Output), `Variable`, `Export` (Y/N): what reaches the RDM CSVs. |
+| `Outputs` | `Kind` (Input or Output), `Variable`, `Export` (Y/N), `Indexed_By`: every parameter and result of the model's otoole conversion file, and whether it reaches the RDM CSVs. `Indexed_By` is for reading only. A ticked variable the model leaves empty is named by `collect`. |
 
 A `Future_ID` or `X_ID` is a letter followed by letters or digits. A
 `Future_ID` becomes the scenario name, so it must not be the name of a

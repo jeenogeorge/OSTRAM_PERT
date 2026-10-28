@@ -171,7 +171,15 @@ def collect_run(run_dir: Path | str, execution_workspace: Path | str | None = No
         writer.writeheader()
         writer.writerows(status_rows)
 
+    # B2's per-future CSVs hold only the parameters and results the model
+    # fills, so a ticked variable that is empty everywhere has no column.
+    not_found = (
+        [v for v in inputs_vars if v not in in_present and in_present]
+        + [v for v in outputs_vars if v not in out_present and out_present]
+    )
+
     summary = {
+        "not_found": not_found,
         "inputs": str(in_path) if in_writer and in_writer.started else None,
         "outputs": str(out_path) if out_writer and out_writer.started else None,
         "status": str(status_path),

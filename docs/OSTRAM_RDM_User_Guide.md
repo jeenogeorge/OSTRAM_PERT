@@ -481,8 +481,16 @@ Each sample draws one value of X1 and one of X2. `Applies_To = ALL` layers
 them inside every future; `F01, F02` limits them to those two. `Linked_To`
 makes one row move with another.
 
-**Outputs.** `Export = Y` puts an input parameter or result variable in the
-RDM CSVs; the timeslice-level ones are large and N by default.
+**Outputs.** The sheet lists every input parameter and result variable of
+the model (all 53 parameters and 47 results of the otoole conversion file),
+with the sets each is indexed by in `Indexed_By`. `Export = Y` puts it in the
+RDM CSVs. Filter `Indexed_By` on `FUEL` or `EMISSION` to find, for example,
+`InputActivityRatio` or `AnnualEmissionLimit`. The timeslice-level ones are
+large and N by default. A misspelt name, or an input listed as an output, is
+reported when the workbook is read. A ticked variable that the model leaves
+empty (OSTRAM gives `AccumulatedAnnualDemand` no values: demand is
+`SpecifiedAnnualDemand`) has no column in the CSVs; `rdm run` and
+`rdm collect` name it.
 
 Save the workbook and close Excel: OSTRAM reads the saved file.
 
