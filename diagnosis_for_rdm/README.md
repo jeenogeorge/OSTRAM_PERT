@@ -34,7 +34,7 @@ points elsewhere.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--steps` | all | Any of `perturbed, sets, outputs, infeasibility, dashboard` |
+| `--steps` | all | Any of `perturbed, sets, outputs, infeasibility, dashboard, results_dashboard` |
 | `--futures F00_s002 F01_s004` | every unsolved future | Futures to diagnose (a solved one can be named too) |
 | `--reference F01` | `F00` | Future the others are compared with |
 | `--years all \| 5 \| 10 \| 2030,2050` | `all` | Year columns of `Perturbed_Inputs.xlsx` (the by-set files always show every year) |
@@ -48,12 +48,41 @@ points elsewhere.
 | `Unsolved_Futures.csv` | The futures that did not solve, with the solver's own status line |
 | `Perturbed_Inputs.xlsx` | Every lever (Uncertainty_Table rows and Future_Changes rows): its draw in every future, where that sits in Min–Max, whether the data show it landed, the perturbed values and their ratio to the reference future |
 | `Perturbed_Inputs_Dashboard.html` | The same as charts, plus the diagnosis and an "Inputs by set" explorer (Set → Parameter → Row, every year, every future). Opens offline if `plotly` is installed |
+| `RDM_Outputs_Dashboard.html` | The results of the solved futures, in the style of the Botswana RDM dashboards: a sidebar of tabs (Overview, Power, Countries, Costs, Interconnectors, Robustness), the named futures side by side, the average of the sampled futures or the central future or any one sample, and the difference from a reference named future. See below |
 | `Inputs_by_Set.xlsx` | Every input row that differs between futures, every year, on one sheet per set: **Technology, Commodity (FUEL), Emission, UDC, Storage, Region** |
 | `Inputs_by_Set_all_years.csv` | Every input value of every future, every year, including rows that do not differ |
 | `Outputs_by_Set.xlsx` / `Outputs_by_Set_all_years.csv` | The same for the results of the solved futures |
 | `Infeasibility_Diagnosis.xlsx` | For each unsolved future: verdict and leads, lever ranking, input rows outside the solved range, conflicting bounds, solver evidence |
 
 Red rows are unsolved futures; grey rows are the reference future.
+
+## The results dashboard
+
+`RDM_Outputs_Dashboard.html` reads `RDM_Outputs.csv`. Build it with the rest,
+or on its own with `build_results_dashboard.py` (F5 in Spyder, `RUN` set at
+the top) or `run_diagnosis.py --run test01 --steps results_dashboard`.
+
+| Group | Tabs |
+|---|---|
+| Overview | System cost and cumulative system cost (discounted), emissions, VRE share of generation |
+| Power | Generation, capacity and new capacity by technology family; storage capacity |
+| Countries | Generation, capacity and emissions by country |
+| Costs | Capital, fixed and variable O&M by period; capital investment and discounted cost by technology, by period |
+| Interconnectors | Flow and capacity of each interconnector |
+| Robustness | Spread of total cost, cumulative emissions, final-year emissions and VRE share across the futures of each named future; cost against emissions, one point per future |
+
+In OSTRAM the named futures (F00, F01 …) play the part of the Botswana
+strategies, and their samples (`F01_s001` …) the part of the futures. The
+**Show** control picks the average of each named future's sampled futures
+(lines carry the min–max band of the samples and the central future dotted),
+the central future, or one sample in every named future; **Values** can show
+the difference from a reference named future. Technologies are grouped with
+OSTRAM's own families and colours (those of
+`ostram/reporting/training_dashboard.py`), and by country from the code
+(`PWRSPVBGDXX` → BGD; `CO2BGD` → BGD). Interconnectors are the 13-character
+`TRN` codes (`TRNBGDXXINDEA` → BGDXX ↔ INDEA). Units: PJ, GW, M$ and
+Mt CO₂. Unsolved futures have no results and are named in the header; a tab
+whose variable was not exported is left out and named in the footer.
 
 ## Where the values come from
 
@@ -123,6 +152,7 @@ it the page loads plotly.js from the jsDelivr CDN.
 ```
 diagnosis_for_rdm/
   run_diagnosis.py      entry point: CONFIG block + command line
+  build_results_dashboard.py  the results dashboard on its own
   rdmdiag/
     run.py              find runs, read the run folder, solver status per future
     levers.py           tie each lever to the input rows it changes
@@ -130,6 +160,7 @@ diagnosis_for_rdm/
     allsets.py          Inputs_by_Set / Outputs_by_Set (every set, every year)
     infeasibility.py    Infeasibility_Diagnosis.xlsx
     dashboard.py        Perturbed_Inputs_Dashboard.html
+    outputs_dashboard.py RDM_Outputs_Dashboard.html
     excel.py            workbook formatting
   tests/test_rdmdiag.py builds a small run folder and checks every step
 ```

@@ -7,6 +7,8 @@ folder, ``<run>/diagnosis/``:
 
   Perturbed_Inputs.xlsx            how every lever perturbed the inputs, future by future
   Perturbed_Inputs_Dashboard.html  the same as interactive charts (open in a browser)
+  RDM_Outputs_Dashboard.html       the results of the solved futures: costs, emissions, generation,
+                                   capacity, countries, interconnectors, spread across futures
   Inputs_by_Set.xlsx               every input that differs between futures, year by year,
                                    listed by Technology / Commodity / Emission / UDC /
                                    Storage / Region
@@ -50,7 +52,8 @@ CONFIG = {
     "run_dir": None,
 
     # What to make. Any of: "perturbed", "sets", "outputs", "infeasibility", "dashboard"
-    "steps": ["perturbed", "sets", "outputs", "infeasibility", "dashboard"],
+    # "dashboard" = how the inputs were perturbed; "results_dashboard" = RDM_Outputs.csv
+    "steps": ["perturbed", "sets", "outputs", "infeasibility", "dashboard", "results_dashboard"],
     # Futures to diagnose. None = every future that did not solve.
     "futures": None,
     # Future every other future is compared with. None = F00, else the first central future.
@@ -68,7 +71,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-ALL_STEPS = ("perturbed", "sets", "outputs", "infeasibility", "dashboard")
+ALL_STEPS = ("perturbed", "sets", "outputs", "infeasibility", "dashboard", "results_dashboard")
 
 
 def parse_args(argv=None):
@@ -211,6 +214,17 @@ def main(argv=None):
         written.append(html_path)
         if not args.no_open:
             webbrowser.open(html_path.resolve().as_uri())
+
+    if "results_dashboard" in args.steps:
+        from rdmdiag.outputs_dashboard import build_outputs_dashboard
+        print("Building the results dashboard from RDM_Outputs.csv ...")
+        res = build_outputs_dashboard(data, out / "RDM_Outputs_Dashboard.html")
+        if res is None:
+            print("  RDM_Outputs.csv not found or empty: no results dashboard")
+        else:
+            written.append(res)
+            if not args.no_open and "dashboard" not in args.steps:
+                webbrowser.open(res.resolve().as_uri())
 
     print(f"\nWritten to {out}  ({time.time() - t0:.0f} s):")
     for w in written:

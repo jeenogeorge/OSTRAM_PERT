@@ -103,12 +103,34 @@ def build_run(workspace: Path) -> Path:
     return run_dir
 
 
+def _write_outputs(run_dir: Path) -> None:
+    rows = []
+    for i, f in enumerate(FUTURES):
+        if f in UNSOLVED:
+            continue
+        for y in YEARS:
+            rows += [
+                {"Future_ID": f, "Named_Future": "F00", "Sample": i, "REGION": "R1", "YEAR": y,
+                 "TECHNOLOGY": "PWRCOABGDXX", "FUEL": "ELCBGDXX01", "ProductionByTechnologyAnnual": 10.0 + i},
+                {"Future_ID": f, "Named_Future": "F00", "Sample": i, "REGION": "R1", "YEAR": y,
+                 "TECHNOLOGY": "PWRSPVBGDXX", "FUEL": "ELCBGDXX01", "ProductionByTechnologyAnnual": 5.0},
+                {"Future_ID": f, "Named_Future": "F00", "Sample": i, "REGION": "R1", "YEAR": y,
+                 "TECHNOLOGY": "TRNBGDXXINDEA", "TotalCapacityAnnual": 1.0},
+                {"Future_ID": f, "Named_Future": "F00", "Sample": i, "REGION": "R1", "YEAR": y,
+                 "EMISSION": "CO2BGD", "AnnualEmissions": 3.0 + i},
+                {"Future_ID": f, "Named_Future": "F00", "Sample": i, "REGION": "R1", "YEAR": y,
+                 "TotalDiscountedCost": 100.0 + i},
+            ]
+    pd.DataFrame(rows).to_csv(run_dir / "RDM_Outputs.csv", index=False)
+
+
 class DiagnosisTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.ws = Path(cls.tmp.name)
         cls.run_dir = build_run(cls.ws)
+        _write_outputs(cls.run_dir)
         cls.data = load_run(resolve_run("test 01", workspace=cls.ws))
 
     @classmethod
@@ -146,12 +168,23 @@ class DiagnosisTests(unittest.TestCase):
         x3 = dx.levers[(dx.levers.Future_ID == "F00_s004") & (dx.levers.Lever == "X3")].iloc[0]
         self.assertEqual(x3.Score, 0)                           # cost lever, never blamed
 
+    def test_results_dashboard_groups_by_family_country_and_interconnector(self):
+        from rdmdiag.outputs_dashboard import build_payload
+        p = build_payload(self.data)
+        tabs = {t["id"] for t in p["tabs"]}
+        self.assertTrue({"cost", "emis", "vre", "gen", "gen_c", "emis_c", "ic_cap", "spread", "tradeoff"} <= tabs)
+        self.assertEqual(p["figs"]["gen"]["cats"], ["Coal", "Solar PV"])
+        self.assertEqual(p["figs"]["ic_cap"]["cats"], ["BGDXX ↔ INDEA"])
+        self.assertEqual(p["meta"]["unsolved"], ["F00_s003", "F00_s004"])
+        self.assertEqual(sorted(p["figs"]["gen"]["v"]["F00"]), ["0", "1", "2"])
+
     def test_script_writes_everything_into_the_run_diagnosis_folder(self):
         run_diagnosis.main(["--workspace", str(self.ws), "--run", "test01", "--no-open"])
         out = self.run_dir / "diagnosis"
         for name in ("Unsolved_Futures.csv", "Perturbed_Inputs.xlsx", "Inputs_by_Set.xlsx",
                      "Inputs_by_Set_all_years.csv", "Outputs_by_Set.xlsx",
-                     "Infeasibility_Diagnosis.xlsx", "Perturbed_Inputs_Dashboard.html"):
+                     "Infeasibility_Diagnosis.xlsx", "Perturbed_Inputs_Dashboard.html",
+                     "RDM_Outputs_Dashboard.html"):
             self.assertTrue((out / name).is_file(), name)
         unsolved = pd.read_csv(out / "Unsolved_Futures.csv")
         self.assertEqual(list(unsolved.Future_ID), ["F00_s003", "F00_s004"])
