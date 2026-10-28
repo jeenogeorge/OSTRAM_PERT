@@ -75,7 +75,7 @@ class InterfaceTemplateTests(unittest.TestCase):
                 interface.read_interface(path)
         message = str(caught.exception)
         for fragment in ("Futures row 3", "Sheet 'Nowhere'", "Selector_Type is Tech",
-                         "'F09'", "'X9'", "Max must not be below Min"):
+                         "'F09'", "'X9'", "Max_Value must not be below Min_Value"):
             self.assertIn(fragment, message)
 
     def test_outputs_sheet_lists_every_model_variable_with_its_sets(self):
@@ -112,6 +112,40 @@ class InterfaceTemplateTests(unittest.TestCase):
         message = str(caught.exception)
         self.assertIn("did you mean InputActivityRatio?", message)
         self.assertIn("TotalCapacityAnnual is an output variable; set Kind to Output", message)
+
+    def test_uncertainty_table_uses_the_osemosys_rdm_column_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = _template(Path(tmp), {("Setup", "B4"): 2})
+            header = [c.value for c in load_workbook(path)["Uncertainty_Table"][1]]
+            self.assertEqual(header[:3], ["X_Num", "X_Category", "Involved_Scenarios"])
+            for name in ("Exact_Parameters_Involved_in_Osemosys", "Involved_First_Sets_in_Osemosys",
+                         "X_Mathematical_Type", "Min_Value", "Max_Value", "Initial_Year_of_Uncertainty",
+                         "X_Plain_English_Description"):
+                self.assertIn(name, header)
+            new = interface.read_interface(path)
+            # a workbook with the earlier short headers reads the same
+            wb = load_workbook(path)
+            for cell, short in zip(wb["Uncertainty_Table"][1], interface.UNCERTAINTY_COLUMNS):
+                cell.value = short
+            wb.save(path)
+            old = interface.read_interface(path)
+        self.assertEqual(new.uncertainties, [u for u in old.uncertainties])
+
+    def test_x_num_may_be_a_number_and_lists_may_use_semicolons(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = _template(Path(tmp), {
+                ("Setup", "B4"): 2,
+                ("Uncertainty_Table", "A2"): 1, ("Uncertainty_Table", "A3"): 2,
+                ("Uncertainty_Table", "C3"): "F01 ; F02",
+                ("Uncertainty_Table", "F3"): "Techs", ("Uncertainty_Table", "G3"): "MINGASBGD ; MINGASIND",
+                ("Uncertainty_Table", "M3"): 1,
+            })
+            spec = interface.read_interface(path)
+        x1, x2 = spec.uncertainties
+        self.assertEqual((x1.x_id, x2.x_id), ("X1", "X2"))
+        self.assertEqual(x2.applies_to, ("F01", "F02"))
+        self.assertEqual(x2.selector, "MINGASBGD, MINGASIND")
+        self.assertEqual(x2.linked_to, "X1")
 
     def test_ramp_needs_both_years(self):
         with tempfile.TemporaryDirectory() as tmp:

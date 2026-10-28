@@ -46,7 +46,7 @@ fuel dropdowns; the template works without them, with empty dropdowns.
    training setup does not).
 3. Apply the future's rows of `Future_Changes`, top to bottom.
 4. With `Samples_Per_Future` above 0, apply one sampled value of every
-   uncertainty in `Uncertainty_Table` whose `Applies_To` includes the future.
+   uncertainty in `Uncertainty_Table` whose `Involved_Scenarios` includes the future.
 5. Re-apply the base-year pin, as for every derived scenario.
 
 Steps 1, 2, 3 and 5 are the existing [scenario edits](scenario-edits.md); the
@@ -77,10 +77,10 @@ demand between 103.5 and 126.5 per cent of the root.
 | `Setup` | `Run_Name`, `Base_Scenario`, `Samples_Per_Future`, `Random_Seed`, `Run_Central_Future`, `Apply_VRE_Ceilings`, `Model_First_Year`, `Model_Last_Year`. |
 | `Futures` | `Future_ID`, `Name`, `Description`, `Run` (Y/N). A future with no changes is the root itself, a baseline. |
 | `Future_Changes` | One row per change: `Future_ID`, `Sheet`, `Parameter`, `Selector_Type`, `Selector`, `Operation`, `Value`, `Year_From`, `Year_To`, `Note`. |
-| `Uncertainty_Table` | One row per ranged uncertainty: `X_ID`, `Name`, `Applies_To` (`ALL` or Future_IDs), the same target columns, `Method`, `Min`, `Max`, `Year_From`, `Year_To`, `Linked_To`, `Note`. |
+| `Uncertainty_Table` | One row per ranged uncertainty, with the column names of the OSeMOSYS RDM interface where they mean the same: `X_Num`, `X_Category`, `Involved_Scenarios` (`ALL` or Future_IDs, separated by `,` or `;`), `Sheet`, `Exact_Parameters_Involved_in_Osemosys`, `Selector_Type`, `Involved_First_Sets_in_Osemosys`, `X_Mathematical_Type`, `Min_Value`, `Max_Value`, `Initial_Year_of_Uncertainty`, `Final_Year_of_Uncertainty`, `Linked_To`, `X_Plain_English_Description`. The earlier short names (`X_ID`, `Name`, `Applies_To`, `Parameter`, `Selector`, `Method`, `Min`, `Max`, `Year_From`, `Year_To`, `Note`) are still read. |
 | `Outputs` | `Kind` (Input or Output), `Variable`, `Export` (Y/N), `Indexed_By`: every parameter and result of the model's otoole conversion file, and whether it reaches the RDM CSVs. `Indexed_By` is for reading only. A ticked variable the model leaves empty is named by `collect`. |
 
-A `Future_ID` or `X_ID` is a letter followed by letters or digits. A
+A `Future_ID` or `X_Num` is a letter followed by letters or digits; an `X_Num` may also be a number, `1` being `X1`. A
 `Future_ID` becomes the scenario name, so it must not be the name of a
 registered scenario.
 
@@ -108,7 +108,7 @@ prefixes.
 | `Set` | the value | `Year_From`/`Year_To` limit it; blank means every year. |
 | `Copy_From_Tech` | the source technology | Every year; not for demand. |
 
-`Uncertainty_Table` takes `Multiply`, `Multiply_Ramp` and `Set`; the sampled
+`Uncertainty_Table` takes `Multiply`, `Multiply_Ramp` and `Set` in `X_Mathematical_Type`; the sampled
 value replaces `Value`. Only one year given means from that year to
 `Model_Last_Year`, or from `Model_First_Year` to that year.
 

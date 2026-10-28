@@ -224,21 +224,24 @@ def read_interface(path: Path) -> Interface:
     levers: list[Lever] = []
 
     if "Uncertainty_Table" in xl.sheet_names:
-        ut = pd.read_excel(xl, "Uncertainty_Table")
+        # Workbooks name these columns either way (OSTRAM's short names, or
+        # the OSeMOSYS RDM interface names the template now writes).
+        ut = pd.read_excel(xl, "Uncertainty_Table").rename(columns=UNCERTAINTY_ALIASES)
         for i, r in ut.iterrows():
-            x_id = _text(r.get("X_ID"))
+            x_id = _x_id(r.get("X_ID"))
             if not x_id:
                 continue
-            applies = _text(r.get("Applies_To")) or "ALL"
+            applies = _text(r.get("Applies_To")).replace(";", ",") or "ALL"
             levers.append(Lever(
                 lever_id=x_id, kind="Uncertainty", name=_text(r.get("Name")),
                 applies_to=None if applies.upper() == "ALL" else tuple(
                     p.strip() for p in applies.split(",") if p.strip()),
                 sheet=_text(r.get("Sheet")), parameter=_text(r.get("Parameter")),
-                selector_type=_text(r.get("Selector_Type")), selector=_text(r.get("Selector")),
+                selector_type=_text(r.get("Selector_Type")),
+                selector=_text(r.get("Selector")).replace(";", ","),
                 method=_text(r.get("Method")), minimum=_num(r.get("Min")), maximum=_num(r.get("Max")),
                 year_from=_int(r.get("Year_From")), year_to=_int(r.get("Year_To")),
-                linked_to=_text(r.get("Linked_To")) or None, note=_text(r.get("Note")),
+                linked_to=_x_id(r.get("Linked_To")) or None, note=_text(r.get("Note")),
                 sheet_row=int(i) + 2,
             ))
 
@@ -265,6 +268,23 @@ def read_interface(path: Path) -> Interface:
 def _int(v):
     f = _num(v)
     return None if f is None else int(f)
+
+
+# Uncertainty_Table header -> the short name used here.
+UNCERTAINTY_ALIASES = {
+    "X_Num": "X_ID", "X_Category": "Name", "Involved_Scenarios": "Applies_To",
+    "Exact_Parameters_Involved_in_Osemosys": "Parameter",
+    "Involved_First_Sets_in_Osemosys": "Selector", "X_Mathematical_Type": "Method",
+    "Min_Value": "Min", "Max_Value": "Max", "Initial_Year_of_Uncertainty": "Year_From",
+    "Final_Year_of_Uncertainty": "Year_To", "X_Plain_English_Description": "Note",
+}
+
+
+def _x_id(v) -> str:
+    """X_Num 1 is the uncertainty X1, as OSTRAM reads it; a code like X1 stays."""
+    s = _text(v)
+    f = _num(s)
+    return f"X{int(f)}" if f is not None and f == int(f) and f > 0 else s
 
 
 # ---------------------------------------------------------------------------

@@ -472,14 +472,24 @@ every year from the technology named in Value). Blank years mean every year.
 
 **Uncertainty_Table: what is sampled inside every future**
 
-| X_ID | Name | Applies_To | Sheet | Parameter | Selector_Type | Selector | Method | Min | Max | Year_From | Year_To |
+| X_Num | X_Category | Involved_Scenarios | Sheet | Exact_Parameters_Involved_in_Osemosys | Selector_Type | Involved_First_Sets_in_Osemosys | X_Mathematical_Type | Min_Value | Max_Value | Initial_Year_of_Uncertainty | Final_Year_of_Uncertainty |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | X1 | Demand growth | ALL | Demand_Projection | SpecifiedAnnualDemand | Fuel_Prefix | ELC | Multiply_Ramp | 0.9 | 1.1 | 2026 | 2050 |
 | X2 | Gas price | ALL | VariableCost | VariableCost | Tech_Prefix | MINGAS | Multiply | 0.8 | 1.5 | | |
 
-Each sample draws one value of X1 and one of X2. `Applies_To = ALL` layers
-them inside every future; `F01, F02` limits them to those two. `Linked_To`
-makes one row move with another.
+The column names follow the OSeMOSYS RDM interface (`Interface_RDM.xlsx`)
+where a column means the same thing; `Sheet`, `Selector_Type` and `Linked_To`
+are OSTRAM's own. They play the parts of `Parameter`, `Selector`, `Method`,
+`Min`, `Max`, `Year_From` and `Year_To` in Future_Changes. Workbooks written
+before, with the short names `X_ID`, `Name`, `Applies_To` and so on, still
+read.
+
+Each sample draws one value of X1 and one of X2. `Involved_Scenarios = ALL`
+layers them inside every future; `F01, F02` (or `F01 ; F02`) limits them to
+those two. `X_Num` may be a number: `1` is the uncertainty `X1`. `Linked_To`
+makes one row move with another. These columns do not carry over the rest of
+the OSeMOSYS RDM engine: `X_Mathematical_Type` takes `Multiply`,
+`Multiply_Ramp` or `Set`, and there is no `Dependency` column.
 
 **Outputs.** The sheet lists every input parameter and result variable of
 the model (all 53 parameters and 47 results of the otoole conversion file),

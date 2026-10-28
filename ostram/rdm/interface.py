@@ -144,6 +144,57 @@ UNCERTAINTY_COLUMNS = (
     "X_ID", "Name", "Applies_To", "Sheet", "Parameter", "Selector_Type", "Selector",
     "Method", "Min", "Max", "Year_From", "Year_To", "Linked_To", "Note",
 )
+# The Uncertainty_Table headers as written in the workbook: the names of the
+# OSeMOSYS RDM interface (Interface_RDM.xlsx) where a column means the same.
+# The reader accepts these or the short names above, so older workbooks and
+# run folders still read.
+UNCERTAINTY_HEADERS = {
+    "X_ID": "X_Num",
+    "Name": "X_Category",
+    "Applies_To": "Involved_Scenarios",
+    "Sheet": "Sheet",
+    "Parameter": "Exact_Parameters_Involved_in_Osemosys",
+    "Selector_Type": "Selector_Type",
+    "Selector": "Involved_First_Sets_in_Osemosys",
+    "Method": "X_Mathematical_Type",
+    "Min": "Min_Value",
+    "Max": "Max_Value",
+    "Year_From": "Initial_Year_of_Uncertainty",
+    "Year_To": "Final_Year_of_Uncertainty",
+    "Linked_To": "Linked_To",
+    "Note": "X_Plain_English_Description",
+}
+_UNCERTAINTY_RENAMES = sorted(
+    ((short, long) for short, long in UNCERTAINTY_HEADERS.items() if short != long),
+    key=lambda pair: -len(pair[0]),
+)
+
+
+def _uncertainty_message(problem: str) -> str:
+    """Name the Uncertainty_Table columns in a problem the way the sheet heads them."""
+
+    if not problem.startswith("Uncertainty_Table"):
+        return problem
+    for short, long in _UNCERTAINTY_RENAMES:
+        problem = re.sub(rf"\b{short}\b", long, problem)
+    return problem
+
+
+def _x_id(value) -> str:
+    """An X_Num of 1, 1.0 or '1' is the uncertainty X1; a code such as X1 stays as it is."""
+
+    text = _text(value)
+    try:
+        number = float(text)
+    except ValueError:
+        return text
+    return f"X{int(number)}" if number == int(number) and number > 0 else text
+
+
+def _list(value) -> str:
+    """Lists may be separated by ';' (as in the OSeMOSYS RDM interface) or ','."""
+
+    return ", ".join(part.strip() for part in _text(value).replace(";", ",").split(",") if part.strip())
 FUTURE_COLUMNS = ("Future_ID", "Name", "Description", "Run")
 OUTPUT_COLUMNS = ("Kind", "Variable", "Export")
 # Written for the reader's benefit only; read_interface ignores it.
@@ -352,7 +403,8 @@ def write_template(
     _validation(changes, operations_ref, "F2:F2000")
 
     uncertainty = wb.create_sheet("Uncertainty_Table")
-    _header(uncertainty, UNCERTAINTY_COLUMNS, (8, 26, 14, 18, 38, 14, 26, 16, 9, 9, 11, 11, 11, 50))
+    _header(uncertainty, [UNCERTAINTY_HEADERS[c] for c in UNCERTAINTY_COLUMNS],
+            (9, 22, 20, 18, 38, 14, 32, 20, 11, 11, 16, 16, 11, 50))
     _validation(uncertainty, sheets_ref, "D2:D2000")
     _validation(uncertainty, params_ref, "E2:E2000")
     _validation(uncertainty, selectors_ref, "F2:F2000")
@@ -459,12 +511,17 @@ README_LINES = (
     "  Note: the basis of the change: a source (URL, DOI) or ASSUMPTION and a reason.",
     "",
     "UNCERTAINTY_TABLE  (one row per ranged uncertainty)",
-    "  X_ID: a short code (X1, X2...). Name: a label.",
-    "  Applies_To: ALL, or the Future_IDs it applies to, separated by commas.",
-    "  Sheet, Parameter, Selector_Type, Selector, Year_From, Year_To: as in Future_Changes.",
-    "  Method: Multiply, Multiply_Ramp or Set. The sampled value replaces Value.",
-    "  Min / Max: the range. Values are drawn by Latin Hypercube sampling, uniform between Min and Max.",
-    "  Linked_To: the X_ID of another row. The two rows then move together: the same position in their ranges.",
+    "  The column names follow the OSeMOSYS RDM interface (Interface_RDM.xlsx) where a column means the same.",
+    "  X_Num: a number (1, 2...) or a code (X1, X2...); the number 1 is the uncertainty X1. X_Category: a label.",
+    "  Involved_Scenarios: ALL, or the Future_IDs it applies to, separated by ',' or ';'.",
+    "  Sheet, Selector_Type: as in Future_Changes.",
+    "  Exact_Parameters_Involved_in_Osemosys: the Parameter, as in Future_Changes.",
+    "  Involved_First_Sets_in_Osemosys: the Selector, as in Future_Changes (a list may use ',' or ';').",
+    "  X_Mathematical_Type: Multiply, Multiply_Ramp or Set. The sampled value replaces Value.",
+    "  Min_Value / Max_Value: the range. Values are drawn by Latin Hypercube sampling, uniform between them.",
+    "  Initial_Year_of_Uncertainty / Final_Year_of_Uncertainty: Year_From / Year_To, as in Future_Changes.",
+    "  Linked_To: the X_Num of another row. The two rows then move together: the same position in their ranges.",
+    "  X_Plain_English_Description: the basis of the range, as the Note of Future_Changes.",
     "  Sampled uncertainties apply after the future's own changes, so a Multiply scales the future's path.",
     "",
     "OUTPUTS",
@@ -502,12 +559,22 @@ def _text(value) -> str:
     return "" if value is None else str(value).strip()
 
 
-def _rows(ws, columns: Sequence[str]):
-    """Yield ``(row_number, {column: value})`` for each non-blank row of ``ws``."""
+def _rows(ws, columns: Sequence[str], headers: dict[str, str] | None = None):
+    """Yield ``(row_number, {column: value})`` for each non-blank row of ``ws``.
 
+    ``headers`` maps a column to the header the template writes for it; the
+    sheet may use either that header or the column's own name.
+    """
+
+    headers = headers or {}
     header = [_text(c.value) for c in ws[1]]
-    index = {name: header.index(name) for name in columns if name in header}
-    missing = [name for name in columns if name not in index]
+    index = {}
+    for name in columns:
+        for label in (headers.get(name, name), name):
+            if label in header:
+                index[name] = header.index(label)
+                break
+    missing = [headers.get(name, name) for name in columns if name not in index]
     if missing:
         raise InterfaceError([f"{ws.title}: missing column(s) {', '.join(missing)}"])
     for number, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
@@ -692,9 +759,12 @@ def read_interface(path: Path | str) -> Interface:
     # Uncertainty_Table
     uncertainties: list[Uncertainty] = []
     try:
-        for number, row in _rows(wb["Uncertainty_Table"], UNCERTAINTY_COLUMNS):
+        for number, row in _rows(wb["Uncertainty_Table"], UNCERTAINTY_COLUMNS, UNCERTAINTY_HEADERS):
             where = f"Uncertainty_Table row {number}"
-            x_id = _text(row["X_ID"])
+            x_id = _x_id(row["X_ID"])
+            row["Applies_To"] = _list(row["Applies_To"])
+            if _text(row["Selector_Type"]) in ("Techs", "Fuels"):
+                row["Selector"] = _list(row["Selector"])
             if not FUTURE_ID.fullmatch(x_id):
                 problems.append(f"{where}: X_ID {x_id!r} must be a letter followed by letters or digits")
                 continue
@@ -721,7 +791,7 @@ def read_interface(path: Path | str) -> Interface:
             year_from = _int(row["Year_From"], where, "Year_From", problems)
             year_to = _int(row["Year_To"], where, "Year_To", problems)
             _check_years(where, method, year_from, year_to, first_year, last_year, problems)
-            linked = _text(row["Linked_To"]) or None
+            linked = _x_id(row["Linked_To"]) or None
             uncertainties.append(Uncertainty(
                 x_id, _text(row["Name"]), applies_to, sheet, parameter, selector_type, selector,
                 method, low if low is not None else 0.0, high if high is not None else 0.0,
@@ -742,6 +812,7 @@ def read_interface(path: Path | str) -> Interface:
             problems.append(f"{u.where}: an uncertainty cannot be linked to itself")
     if uncertainties and samples == 0:
         problems.append("Setup: Uncertainty_Table has rows but Samples_Per_Future is 0")
+    problems = [_uncertainty_message(p) for p in problems]
 
     # Outputs
     input_variables, output_variables = [], []
