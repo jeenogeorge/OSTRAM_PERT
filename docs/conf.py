@@ -38,7 +38,7 @@ source_suffix = {
 }
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build"]
+exclude_patterns = ["_build", "html"]
 
 html_theme = "furo"
 html_theme_options = {

@@ -386,6 +386,10 @@ def run_execution_stage(
     """Dispatch the unchanged parallel or linear per-scenario execution route."""
 
     params = plan.params
+    # An RDM run solves many futures; one that fails is recorded and the rest
+    # still run.  Other runs keep stopping at the first failure.
+    keep_going = rdm_futures_active()
+    failed: list[str] = []
     if params["execute_model"] or params["create_matrix"]:
         if params["parallel"]:
             print("Started parallelization of model execution")
@@ -416,11 +420,21 @@ def run_execution_stage(
                         for scenario, exitcode in failures
                     )
                     print(f"[FAILED] Parallel B2 worker failure: {detail}")
-                    raise SystemExit(failures[0][1])
+                    if not keep_going:
+                        raise SystemExit(failures[0][1])
+                    failed.extend(scenario for scenario, _ in failures)
         else:
             print("Started linear executions")
             for scenario_name in plan.scenarios:
-                dependencies.main_executer(params, scenario_name, plan.here)
+                try:
+                    dependencies.main_executer(params, scenario_name, plan.here)
+                except Exception as error:
+                    if not keep_going:
+                        raise
+                    print(f"[FAILED] {scenario_name}: {error}. Continuing with the next future.")
+                    failed.append(scenario_name)
+    if failed:
+        raise RuntimeError(f"{len(failed)} future(s) failed in B2: {', '.join(failed)}")
 
 
 def run_cleanup_stage(
@@ -877,6 +891,9 @@ class SolverAdapter:
                 "randomCbcSeed", str(cbc_random_seed),
                 "primalTolerance", str(params.get("cbc_primal_tolerance", "1e-8")),
                 "dualTolerance", "1e-8",
+                # "-primalS" solves the LP with primal simplex before "solve";
+                # absent, CBC uses its default (dual simplex), as before.
+                *(["-primalS"] if params.get("cbc_simplex") == "primal" else []),
                 "-seconds", str(params["iteration_time"]),
                 "solve", "-solu", f"{paths.output_file}.sol",
             ]
@@ -1026,6 +1043,33 @@ def run_scenario_output_stage(
             )
 
 
+def rdm_futures_active() -> bool:
+    """Return whether this run builds RDM futures (``OSTRAM_RDM_FUTURES`` is set)."""
+
+    from ostram.pipeline.scenarios.registry import FUTURES_ENV
+
+    return bool(os.environ.get(FUTURES_ENV))
+
+
+def solver_settings_scenario(scenario_name: str) -> str:
+    """Return the scenario whose per-scenario solver settings apply.
+
+    An RDM future has the numerics of its root, so it uses the root's entries
+    in ``cbc_primal_tolerance_by_scenario`` and
+    ``cplex_numerical_emphasis_scenarios``.  Every other scenario uses its own
+    name, as before.
+    """
+
+    if not rdm_futures_active():
+        return scenario_name
+    from ostram.pipeline.scenarios.registry import load_registry
+
+    future = load_registry().derived_by_name.get(scenario_name)
+    if future is not None and future.config_root is not None:
+        return future.base_scenario
+    return scenario_name
+
+
 def execute_scenario(
     params: dict[str, Any],
     scenario_name: str,
@@ -1039,12 +1083,19 @@ def execute_scenario(
 
     paths = resolve_scenario_execution_paths(params, scenario_name, here)
     solver = params["solver"]
+    settings_name = solver_settings_scenario(scenario_name)
     if solver == "cbc":
         tolerances = params.get("cbc_primal_tolerance_by_scenario", {})
-        if scenario_name in tolerances:
+        if settings_name in tolerances:
             # Numerical recovery belongs to this case, not subsequent cases.
-            params = {**params, "cbc_primal_tolerance": tolerances[scenario_name]}
-    if solver == "cplex" and scenario_name in params.get(
+            params = {**params, "cbc_primal_tolerance": tolerances[settings_name]}
+        if settings_name != scenario_name:
+            # An RDM future cannot be tuned by hand. CBC's default dual simplex
+            # can cycle without end on these storage LPs; primal simplex
+            # solved every tested training future. rdm_cbc_simplex: dual
+            # restores the default.
+            params = {**params, "cbc_simplex": params.get("rdm_cbc_simplex", "primal")}
+    if solver == "cplex" and settings_name in params.get(
         "cplex_numerical_emphasis_scenarios", ()
     ):
         # Keep the shared run configuration unchanged for subsequent cases.

@@ -56,6 +56,11 @@ scenario YAML edit schema (one dict per edit):
                                          row (same sheet)
     create_if_absent : bool (default False) -> create the param row if missing
     note             : free text (audit only)
+
+An edit whose sheet is "Demand_Projection" changes A-O_Demand.xlsx instead:
+it selects demand fuels with fuel | fuels | fuel_prefix, its param is
+SpecifiedAnnualDemand, and it holds values, op:"multiply" (optional years)
+or op:"set_flat".
 """
 
 from __future__ import annotations
@@ -79,6 +84,9 @@ from .transformations import interconnector_authority as _authority
 # Constants / paths
 # --------------------------------------------------------------------------
 PARAM_FILE = "A-O_Parametrization.xlsx"
+DEMAND_FILE = "A-O_Demand.xlsx"
+DEMAND_SHEETS = ("Demand_Projection",)
+DEMAND_PARAM = "SpecifiedAnnualDemand"
 PROJ_MODE_COL = "Projection.Mode"
 PROJ_MODE_USER = "User defined"
 RES_PARAM = "ResidualCapacity"
@@ -651,9 +659,121 @@ def apply_ceiling_layer(wb, log, ceiling_path=CEIL_BASE):
     }
 
 
-def apply_scenario_edits(wb, scenario_inputs, log, minimum_boundaries=None):
-    """Apply the scenario edits listed under ``edits`` in their listed order."""
+def demand_edits(scenario_inputs):
+    """Return the edits that target ``A-O_Demand.xlsx`` rather than the parametrization."""
+    return [e for e in scenario_inputs.get("edits", []) if e.get("sheet") in DEMAND_SHEETS]
+
+
+def demand_selection(ws, fuel_col, edit):
+    """Return the demand rows selected by ``fuel`` / ``fuels`` / ``fuel_prefix``."""
+    keys = [k for k in ("fuel", "fuels", "fuel_prefix") if k in edit]
+    if len(keys) != 1:
+        raise ValueError("a demand edit names exactly one of fuel / fuels / fuel_prefix")
+    rows = {}
+    for r in range(2, ws.max_row + 1):
+        value = ws.cell(row=r, column=fuel_col).value
+        if value is not None:
+            rows.setdefault(str(value).strip(), r)
+    if "fuel" in edit:
+        wanted = [str(edit["fuel"])]
+    elif "fuels" in edit:
+        wanted = [str(f) for f in edit["fuels"]]
+    else:
+        wanted = [f for f in rows if f.startswith(str(edit["fuel_prefix"]))]
+    return wanted, rows
+
+
+def apply_demand_edit(ws, edit, log):
+    """Apply one edit to the ``Demand_Projection`` sheet of ``A-O_Demand.xlsx``.
+
+    The sheet has one ``SpecifiedAnnualDemand`` row per demand fuel, keyed by
+    its ``Fuel/Tech`` column.  The operations are ``values``, ``op: multiply``
+    (with optional ``years``) and ``op: set_flat``, as for the parametrization.
+    Raises ScenarioEditError when the edit matches nothing.
+    """
+    param = edit.get("param", DEMAND_PARAM)
+    if param != DEMAND_PARAM:
+        raise ValueError(f'sheet "{ws.title}" holds only {DEMAND_PARAM}, not {param}')
+    fuel_col, proj_col, year_cols = None, None, {}
+    for c in range(1, ws.max_column + 1):
+        raw = ws.cell(row=1, column=c).value
+        if raw is None:
+            continue
+        year = _as_year(raw)
+        if year is not None:
+            year_cols[year] = c
+        elif str(raw).strip() == "Fuel/Tech":
+            fuel_col = c
+        elif str(raw).strip() == PROJ_MODE_COL:
+            proj_col = c
+    if fuel_col is None:
+        raise ValueError(f'sheet "{ws.title}" has no Fuel/Tech column')
+    wanted, rows = demand_selection(ws, fuel_col, edit)
+    selector = edit.get("fuel") or edit.get("fuel_prefix") or ", ".join(edit.get("fuels", []))
+    subject = f'Scenario {log.get("scenario")}: the edit to {param} for "{selector}" changed nothing.'
+    if not wanted:
+        raise ScenarioEditError(f'{subject} No demand fuel starts with "{selector}".')
+    missing = [f for f in wanted if f not in rows]
+    if missing:
+        close = get_close_matches(missing[0], sorted(rows), n=1)
+        hint = f" Did you mean {close[0]}?" if close else ""
+        raise ScenarioEditError(f"{subject} No demand fuel is named {missing[0]}.{hint}")
+    if "values" in edit:
+        named = {int(y): float(v) for y, v in (edit["values"] or {}).items()}
+        newfn = lambda y, old, v=named: v.get(y, old)
+    elif edit.get("op") == "multiply":
+        factor = float(edit["factor"])
+        years = {int(y) for y in edit["years"]} if edit.get("years") else None
+        named = years
+        def newfn(y, old, f=factor, yrs=years):
+            """Return ``old`` times the factor in selected years; keep others unchanged."""
+            if (yrs is not None and y not in yrs) or old is None:
+                return old
+            try:
+                return round(float(old) * f, 6)
+            except (TypeError, ValueError):
+                return old
+    elif edit.get("op") == "set_flat":
+        named = None
+        newfn = lambda y, old, v=float(edit["value"]): v
+    else:
+        raise ValueError(f"demand edit for {selector}: no valid operation")
+    absent = sorted(set(named or ()) - set(year_cols))
+    if absent:
+        raise ScenarioEditError(
+            f"{subject} None of the years {', '.join(map(str, absent))} is a column in the workbook."
+        )
+    for fuel in wanted:
+        r = rows[fuel]
+        changed = False
+        for y, c in year_cols.items():
+            cell = ws.cell(row=r, column=c)
+            old = cell.value
+            nv = newfn(y, old)
+            if nv is not None and (old is None or _neq(old, nv)):
+                cell.value = nv
+                changed = True
+                log["cells"].append({"tech": fuel, "param": param, "year": y,
+                                     "old": _num(old), "new": _num(nv),
+                                     "workbook": DEMAND_FILE})
+        if changed and proj_col is not None:
+            mode = ws.cell(row=r, column=proj_col)
+            if mode.value in (None, "EMPTY", ""):
+                mode.value = PROJ_MODE_USER
+
+
+def apply_scenario_edits(wb, scenario_inputs, log, minimum_boundaries=None, demand_wb=None):
+    """Apply the scenario edits listed under ``edits`` in their listed order.
+
+    Edits whose ``sheet`` is a demand sheet go to ``demand_wb``, the scenario's
+    ``A-O_Demand.xlsx``; every other edit goes to ``wb``.
+    """
     for edit in scenario_inputs.get("edits", []):
+        if edit.get("sheet") in DEMAND_SHEETS:
+            if demand_wb is None:
+                raise ValueError(f'edit on sheet "{edit["sheet"]}" needs {DEMAND_FILE}')
+            apply_demand_edit(demand_wb[edit["sheet"]], edit, log)
+            continue
         ws = wb[edit["sheet"]]
         col_map, year_cols = scan_columns(ws)
         apply_edit(
@@ -775,6 +895,9 @@ def build_scenario(
         }
 
     wb = load_workbook(tgt_dir / PARAM_FILE)
+    # The demand workbook is opened only when an edit targets it, so scenarios
+    # without demand edits leave A-O_Demand.xlsx byte-for-byte untouched.
+    demand_wb = load_workbook(tgt_dir / DEMAND_FILE) if demand_edits(scenario_inputs) else None
     if scenario_inputs.get("apply_vre_ceiling_layer", True):
         apply_ceiling_layer(wb, log, ceiling_path=ceiling_path)
     apply_scenario_edits(
@@ -782,9 +905,13 @@ def build_scenario(
         scenario_inputs,
         log,
         minimum_boundaries=minimum_boundaries,
+        demand_wb=demand_wb,
     )
     wb.save(tgt_dir / PARAM_FILE)
     wb.close()
+    if demand_wb is not None:
+        demand_wb.save(tgt_dir / DEMAND_FILE)
+        demand_wb.close()
 
     # Generic descendant ceilings must not replace reviewed calibration.
     # Resolve the declared ancestry; retain descendant edits outside the table.

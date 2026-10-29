@@ -28,6 +28,12 @@ ROOT_SCENARIOS = (
 _SCENARIO_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 _ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
+# A generated futures file (``ostram-futures-v1``) written by ``ostram rdm``.
+# When this variable names one, its futures join the registry as derived
+# scenarios for the duration of that run.  Nothing under ``config/`` changes.
+FUTURES_ENV = "OSTRAM_RDM_FUTURES"
+FUTURES_SCHEMA = "ostram-futures-v1"
+
 
 @dataclass(frozen=True)
 class ResultDependency:
@@ -56,6 +62,9 @@ class DerivedScenario:
     base_scenario: str
     direction_overlay: Path | None = None
     direction_study_start_year: int | None = None
+    # Folder that holds ``<name>/scenario.yaml``.  None means the setup's
+    # scenario config root; RDM futures live in their run folder instead.
+    config_root: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -293,6 +302,11 @@ def load_registry(
             )
         )
 
+    futures = load_futures(os.environ.get(FUTURES_ENV))
+    if futures:
+        derived.extend(futures)
+        decision_scenarios = decision_scenarios + tuple(f.name for f in futures)
+
     registry = ScenarioRegistry(
         path=registry_path,
         support_scenarios=support_scenarios,
@@ -302,6 +316,45 @@ def load_registry(
     )
     _validate_registry(registry, validate_files=validate_files)
     return registry
+
+
+def load_futures(path: Path | str | None) -> list[DerivedScenario]:
+    """Return the RDM futures listed in a generated ``ostram-futures-v1`` file.
+
+    The file lists future names; each future's ``scenario.yaml`` sits in the
+    folder ``scenarios/<name>/`` beside the file.  ``None`` or an empty value
+    returns no futures.
+    """
+
+    if not path:
+        return []
+    futures_path = Path(path).expanduser().resolve()
+    if not futures_path.is_file():
+        raise FileNotFoundError(f"{FUTURES_ENV} names a missing file: {futures_path}")
+    raw = yaml.safe_load(futures_path.read_text(encoding="utf-8")) or {}
+    if raw.get("schema") != FUTURES_SCHEMA:
+        raise ValueError(f"unsupported futures schema in {futures_path}: {raw.get('schema')}")
+    config_root = futures_path.parent / "scenarios"
+    futures: list[DerivedScenario] = []
+    for name in raw.get("futures", ()):
+        name = str(name)
+        folder = _registry_relative(config_root, name, label=f"{name} future folder")
+        scenario_file = folder / "scenario.yaml"
+        if not scenario_file.is_file():
+            raise ValueError(f"future {name} has no scenario file {scenario_file}")
+        inputs = yaml.safe_load(scenario_file.read_text(encoding="utf-8"))
+        if inputs.get("scenario") != name:
+            raise ValueError(
+                f"{scenario_file} declares scenario={inputs.get('scenario')!r}; expected {name!r}"
+            )
+        futures.append(
+            DerivedScenario(
+                name=name,
+                base_scenario=str(inputs.get("base_scenario")),
+                config_root=config_root,
+            )
+        )
+    return futures
 
 
 def _validate_registry(

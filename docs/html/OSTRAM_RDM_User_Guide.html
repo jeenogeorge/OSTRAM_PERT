@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSTRAM and RDM: user guide</title>
+<style>
+:root { --teal-dark:#00414D; --teal:#0A595F; --teal-mid:#23978E; --emerald:#10B981; --amber:#F59E0B;
+        --slate-900:#334155; --slate-600:#475569; --sage-light:#C5D8D8; --cloud:#E0F0EF; --ice:#F0F5F5; --white:#FFFFFF; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; font-family:'Segoe UI',Inter,-apple-system,sans-serif; background:var(--ice); color:var(--slate-900);
+       line-height:1.65; font-size:16px; }
+.hero { background:linear-gradient(135deg,var(--teal-dark),var(--teal) 50%,var(--teal-mid)); color:var(--white);
+        padding:38px 24px 32px; text-align:center; }
+.hero h1 { margin:0 0 6px; font-size:2.05rem; }
+.hero p { margin:0; opacity:.9; }
+.hero a { color:var(--white); }
+.layout { display:flex; gap:28px; max-width:1260px; margin:0 auto; padding:24px 16px 60px; }
+nav.toc { flex:0 0 280px; position:sticky; top:16px; align-self:flex-start; max-height:calc(100vh - 32px); overflow-y:auto;
+          background:var(--white); border:1px solid var(--sage-light); border-radius:10px; padding:14px 16px; font-size:.86rem; }
+nav.toc .label { font-weight:700; color:var(--teal-dark); margin:10px 0 4px; }
+nav.toc .label:first-child { margin-top:0; }
+nav.toc ul { list-style:none; padding-left:12px; margin:0; }
+nav.toc > ul, nav.toc > div > ul { padding-left:0; }
+nav.toc a { color:var(--slate-600); text-decoration:none; display:block; padding:2px 0; }
+nav.toc a:hover { color:var(--teal); }
+nav.toc details summary { cursor:pointer; color:var(--slate-900); padding:2px 0; }
+nav.toc details summary a { display:inline; color:var(--slate-900); font-weight:600; }
+main { flex:1; min-width:0; background:var(--white); border:1px solid var(--sage-light); border-radius:12px; padding:8px 36px 36px; }
+section.page { border-bottom:3px solid var(--cloud); padding-bottom:20px; margin-bottom:10px; }
+section.page > h1 { color:var(--teal-dark); font-size:1.8rem; margin-top:36px; }
+main.single > h1:first-child { display:none; }
+h2 { color:var(--teal-dark); border-bottom:2px solid var(--cloud); padding-bottom:6px; margin-top:40px; }
+h3 { color:var(--teal); margin-top:28px; }
+h4 { color:var(--teal); }
+a { color:var(--teal); }
+code { font-family:Consolas,'JetBrains Mono',monospace; background:var(--cloud); color:var(--teal-dark);
+       padding:1px 6px; border-radius:4px; font-size:.88em; }
+pre { position:relative; background:var(--slate-900); color:#e2e8f0; border-radius:10px; padding:16px 20px;
+      overflow-x:auto; font-size:.86rem; line-height:1.6; }
+pre code { background:none; color:inherit; padding:0; }
+pre.mermaid { background:var(--white); color:var(--slate-900); border:1px solid var(--sage-light); text-align:center; }
+.copy { position:absolute; top:8px; right:8px; background:rgba(255,255,255,.12); color:#e2e8f0;
+        border:1px solid rgba(255,255,255,.25); border-radius:6px; padding:3px 10px; font-size:.75rem; cursor:pointer; }
+.copy.done { background:var(--emerald); border-color:var(--emerald); }
+.tablewrap { overflow-x:auto; margin:14px 0; }
+table { border-collapse:collapse; width:100%; font-size:.9rem; }
+th { background:var(--teal-dark); color:var(--white); text-align:left; padding:9px 12px; }
+td { padding:8px 12px; border-bottom:1px solid var(--sage-light); vertical-align:top; }
+tr:nth-child(even) td { background:var(--ice); }
+.admonition { border-left:4px solid var(--teal-mid); background:var(--cloud); border-radius:0 8px 8px 0; padding:4px 18px; margin:16px 0; }
+.admonition.warning { border-left-color:var(--amber); background:#fefce8; }
+.admonition-title { font-weight:700; margin-bottom:0; }
+hr { border:none; border-top:1px solid var(--sage-light); margin:36px 0; }
+footer { text-align:center; color:var(--slate-600); font-size:.8rem; padding:0 16px 30px; }
+@media (max-width:900px) { .layout { flex-direction:column; } nav.toc { position:static; max-height:none; flex:none; }
+                           main { padding:8px 18px 24px; } }
+</style>
+</head>
+<body id="top">
+<div class="hero">
+  <h1>OSTRAM and RDM: user guide</h1>
+  <p>From a fresh clone, through the baseline, to RDM futures — and which script runs at each step. Other pages: <a href="OSTRAM_Complete_Documentation.html">complete documentation</a>.</p>
+</div>
+<div class="layout">
+  <nav class="toc"><div class="label">Contents</div><ul><li><a href="#part-1-the-repository">Part 1. The repository</a><ul><li><a href="#11-top-level-folders">1.1 Top-level folders</a></li><li><a href="#12-inside-ostram">1.2 Inside ostram\</a></li><li><a href="#13-inside-examplesunescap_training">1.3 Inside examples\unescap_training\</a></li><li><a href="#14-inside-workspace-generated">1.4 Inside workspace\ (generated)</a></li><li><a href="#15-folder-names-do-not-match-the-stage-labels">1.5 Folder names do not match the stage labels</a></li></ul></li><li><a href="#part-2-the-pipeline">Part 2. The pipeline</a><ul><li><a href="#21-commands-and-what-they-call">2.1 Commands and what they call</a></li><li><a href="#22-the-stages-of-run">2.2 The stages of run</a></li><li><a href="#23-inside-a3">2.3 Inside A3</a></li><li><a href="#24-inside-b2-for-one-scenario">2.4 Inside B2, for one scenario</a></li></ul></li><li><a href="#part-3-the-baseline">Part 3. The baseline</a><ul><li><a href="#step-31-open-the-prompt">Step 3.1. Open the prompt</a></li><li><a href="#step-32-be-on-the-rdm-branch">Step 3.2. Be on the RDM branch</a></li><li><a href="#step-33-prepare-the-training-model-once">Step 3.3. Prepare the training model (once)</a></li><li><a href="#step-34-build-the-roots-without-solving">Step 3.4. Build the roots without solving</a></li><li><a href="#step-35-solve-the-roots">Step 3.5. Solve the roots</a></li><li><a href="#step-36-capture-the-baseline-and-look-at-it">Step 3.6. Capture the baseline and look at it</a></li><li><a href="#step-37-changing-the-models-structure-exercises-a-and-b">Step 3.7. Changing the model's structure (exercises A and B)</a></li></ul></li><li><a href="#part-4-rdm-futures">Part 4. RDM futures</a><ul><li><a href="#step-41-get-the-interface-workbook">Step 4.1. Get the interface workbook</a></li><li><a href="#step-42-fill-the-workbook">Step 4.2. Fill the workbook</a></li><li><a href="#step-43-preview-the-futures">Step 4.3. Preview the futures</a></li><li><a href="#step-44-run-everything">Step 4.4. Run everything</a></li><li><a href="#step-45-look-at-the-results">Step 4.5. Look at the results</a></li><li><a href="#step-46-change-something-and-run-again">Step 4.6. Change something and run again</a></li></ul></li><li><a href="#part-5-the-south-asia-model">Part 5. The South Asia model</a></li><li><a href="#reference">Reference</a><ul><li><a href="#what-a-future-cannot-do">What a future cannot do</a></li><li><a href="#how-a-workbook-row-becomes-edits">How a workbook row becomes edits</a></li><li><a href="#rdm-code-map">RDM code map</a></li></ul></li></ul><div class="label">More</div><ul><li><a href="OSTRAM_Complete_Documentation.html">Complete documentation</a></li></ul></nav>
+  <main class="single">
+<h1 id="ostram-and-rdm-user-guide">OSTRAM and RDM: user guide</h1>
+<p>This guide takes you from a fresh clone to a finished RDM run. It is written
+for someone who runs the model, and who also wants to know <strong>which script runs
+when, what it reads and what it writes</strong>.</p>
+<p>This guide is also a single HTML page, <code>docs/html/OSTRAM_RDM_User_Guide.html</code>,
+and every page of the documentation is in
+<code>docs/html/OSTRAM_Complete_Documentation.html</code>. Both are rebuilt from the
+Markdown pages with <code>python tools/build_html_docs.py --bake</code>.</p>
+<p>It has four parts:</p>
+<ol>
+<li><a href="#part-1-the-repository">The repository</a>: what each folder holds and which
+stage of the pipeline uses it.</li>
+<li><a href="#part-2-the-pipeline">The pipeline</a>: what each command calls, stage by
+stage.</li>
+<li><a href="#part-3-the-baseline">The baseline</a>: set up the training model and build,
+solve and check the root scenarios. This is what the training exercises do,
+and it comes first, because every RDM future starts from a root.</li>
+<li><a href="#part-4-rdm-futures">RDM</a>: describe futures in one Excel workbook, run them
+all, and collect the RDM CSVs.</li>
+</ol>
+<p>The examples use the two-region training model (<code>unescap_training</code>:
+Bangladesh and India East), which solves in minutes.
+<a href="#part-5-the-south-asia-model">Part 5</a> says what changes for the South Asia
+model. The <a href="OSTRAM_Complete_Documentation.html#rdm">RDM futures</a> page is the short reference for the RDM
+workbook and commands.</p>
+<pre class="mermaid"><svg aria-roledescription="flowchart-v2" role="graphics-document document" viewBox="-8 -8 693.734375 226.765625" style="max-width: 693.734375px;" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="100%" id="mermaid-1793182566494"><style>#mermaid-1793182566494{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#000000;}#mermaid-1793182566494 .error-icon{fill:#552222;}#mermaid-1793182566494 .error-text{fill:#552222;stroke:#552222;}#mermaid-1793182566494 .edge-thickness-normal{stroke-width:2px;}#mermaid-1793182566494 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1793182566494 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1793182566494 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1793182566494 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1793182566494 .marker{fill:#666;stroke:#666;}#mermaid-1793182566494 .marker.cross{stroke:#666;}#mermaid-1793182566494 svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#mermaid-1793182566494 .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#000000;}#mermaid-1793182566494 .cluster-label text{fill:#333;}#mermaid-1793182566494 .cluster-label span,#mermaid-1793182566494 p{color:#333;}#mermaid-1793182566494 .label text,#mermaid-1793182566494 span,#mermaid-1793182566494 p{fill:#000000;color:#000000;}#mermaid-1793182566494 .node rect,#mermaid-1793182566494 .node circle,#mermaid-1793182566494 .node ellipse,#mermaid-1793182566494 .node polygon,#mermaid-1793182566494 .node path{fill:#eee;stroke:#999;stroke-width:1px;}#mermaid-1793182566494 .flowchart-label text{text-anchor:middle;}#mermaid-1793182566494 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1793182566494 .node .label{text-align:center;}#mermaid-1793182566494 .node.clickable{cursor:pointer;}#mermaid-1793182566494 .arrowheadPath{fill:#333333;}#mermaid-1793182566494 .edgePath .path{stroke:#666;stroke-width:2.0px;}#mermaid-1793182566494 .flowchart-link{stroke:#666;fill:none;}#mermaid-1793182566494 .edgeLabel{background-color:white;text-align:center;}#mermaid-1793182566494 .edgeLabel rect{opacity:0.5;background-color:white;fill:white;}#mermaid-1793182566494 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-1793182566494 .cluster rect{fill:hsl(0, 0%, 98.9215686275%);stroke:#707070;stroke-width:1px;}#mermaid-1793182566494 .cluster text{fill:#333;}#mermaid-1793182566494 .cluster span,#mermaid-1793182566494 p{color:#333;}#mermaid-1793182566494 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:hsl(-160, 0%, 93.3333333333%);border:1px solid #707070;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1793182566494 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-1793182566494 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker orient="auto" markerHeight="12" markerWidth="12" markerUnits="userSpaceOnUse" refY="5" refX="6" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566494_flowchart-pointEnd"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 0 L 10 5 L 0 10 z"></path></marker><marker orient="auto" markerHeight="12" markerWidth="12" markerUnits="userSpaceOnUse" refY="5" refX="4.5" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566494_flowchart-pointStart"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 5 L 10 10 L 10 0 z"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="11" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566494_flowchart-circleEnd"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="-1" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566494_flowchart-circleStart"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="12" viewBox="0 0 11 11" class="marker cross flowchart" id="mermaid-1793182566494_flowchart-crossEnd"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="-1" viewBox="0 0 11 11" class="marker cross flowchart" id="mermaid-1793182566494_flowchart-crossStart"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path marker-end="url(#mermaid-1793182566494_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-R LE-P" id="L-R-P-0" d="M212.008,48.688L226.03,48.688C240.052,48.688,268.096,48.688,285.406,48.999C302.715,49.311,309.29,49.935,312.577,50.246L315.864,50.558"></path><path marker-end="url(#mermaid-1793182566494_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-P LE-F" id="L-P-F-0" d="M482,58.688L486.167,58.688C490.333,58.688,498.667,58.688,506.228,60.578C513.79,62.468,520.58,66.249,523.975,68.139L527.369,70.029"></path><path style="fill:none;stroke-width:2px;stroke-dasharray:3;" class="edge-thickness-normal edge-pattern-dotted flowchart-link LS-PIPE LE-P" id="L-PIPE-P-0" d="M233.087,144.578L243.596,141.012C254.105,137.445,275.123,130.313,289.798,124.197C304.474,118.082,312.807,112.985,316.974,110.436L321.141,107.887"></path><path style="fill:none;stroke-width:2px;stroke-dasharray:3;" class="edge-thickness-normal edge-pattern-dotted flowchart-link LS-PIPE LE-F" id="L-PIPE-F-0" d="M271.141,186.115L275.307,186.374C279.474,186.634,287.807,187.153,309.546,187.412C331.284,187.672,366.427,187.672,401.57,187.672C436.714,187.672,471.857,187.672,493.595,184.5C515.333,181.329,523.667,174.986,527.833,171.814L532,168.643"></path></g><g class="edgeLabels"><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g transform="translate(135.5703125, 48.6875)" data-id="R" data-node="true" id="flowchart-R-0" class="node default default flowchart-label"><rect height="91.78125" width="152.875" y="-45.890625" x="-76.4375" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-68.9375, -38.390625)" style="" class="label"><rect></rect><foreignObject height="76.78125" width="137.875"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Part 1<br>Repository<br>inputs, config, code</span></div></foreignObject></g></g><g transform="translate(401.5703125, 58.6875)" data-id="P" data-node="true" id="flowchart-P-1" class="node default default flowchart-label"><rect height="117.375" width="160.859375" y="-58.6875" x="-80.4296875" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-72.9296875, -51.1875)" style="" class="label"><rect></rect><foreignObject height="102.375" width="145.859375"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Part 3<br>Baseline<br>prepare, solve roots,<br>capture baseline</span></div></foreignObject></g></g><g transform="translate(604.8671875, 113.1796875)" data-id="F" data-node="true" id="flowchart-F-3" class="node default default flowchart-label"><rect height="117.375" width="145.734375" y="-58.6875" x="-72.8671875" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-65.3671875, -51.1875)" style="" class="label"><rect></rect><foreignObject height="102.375" width="130.734375"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Part 4<br>RDM<br>workbook, futures,<br>RDM CSVs</span></div></foreignObject></g></g><g transform="translate(135.5703125, 177.671875)" data-id="PIPE" data-node="true" id="flowchart-PIPE-4" class="node default default flowchart-label"><rect height="66.1875" width="271.140625" y="-33.09375" x="-135.5703125" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-128.0703125, -25.59375)" style="" class="label"><rect></rect><foreignObject height="51.1875" width="256.140625"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Part 2<br>Pipeline A1 → A2 → A3 → B1 → B2</span></div></foreignObject></g></g></g></g></g></svg></pre>
+<p>Every command runs from your OSTRAM folder, the root of the clone, in an
+Anaconda Prompt, with the environment active (step 3.1).</p>
+<hr>
+<h2 id="part-1-the-repository">Part 1. The repository</h2>
+<h3 id="11-top-level-folders">1.1 Top-level folders</h3>
+<p>Your clone (for example the folder <code>OSTRAM_PERT</code>) holds the source: code,
+inputs and configuration. Everything the pipeline generates goes into
+<code>workspace\</code>, which Git ignores.</p>
+<table>
+<thead>
+<tr>
+<th>Folder or file</th>
+<th>What it holds</th>
+<th>Used when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ostram\</code></td>
+<td>The Python package: every stage of the pipeline and every command. See 1.2.</td>
+<td>Every command.</td>
+</tr>
+<tr>
+<td><code>inputs\</code></td>
+<td>The <strong>South Asia</strong> model's input data: <code>osemosys_global\</code> (64 OSeMOSYS Global CSVs), <code>preparation\</code> (country centrepoints, the technology–country matrix, workbook templates), <code>scenarios\</code> (the scenario workbook and the timeslice workbook), <code>execution\</code> (the gas and oil fallback caps).</td>
+<td>A1 reads <code>osemosys_global\</code> and <code>preparation\</code>; A3 reads <code>scenarios\</code>; B2 reads <code>execution\</code>. The training setup has its own inputs, except <code>execution\</code>, which it shares.</td>
+</tr>
+<tr>
+<td><code>config\</code></td>
+<td>The <strong>South Asia</strong> configuration: <code>setups\</code> (which setups exist; <code>south_asia.yaml</code> with the scenario registry and VRE ceilings), <code>preparation\</code> (countries and regions), <code>compilation\</code> (years, timeslices, workbook names), <code>execution\</code> (solver and model-file adjustments), <code>scenarios\</code> (each root's rule settings and each derived scenario's <code>scenario.yaml</code>).</td>
+<td><code>config\setups\registry.json</code> at every command; the rest by A1 to B2 for the South Asia model.</td>
+</tr>
+<tr>
+<td><code>examples\unescap_training\</code></td>
+<td>The <strong>training setup</strong>: its own <code>setup.yaml</code>, <code>inputs\</code> and <code>config\</code>, laid out like the top-level ones. See 1.3.</td>
+<td>Every command with <code>--setup unescap_training</code>.</td>
+</tr>
+<tr>
+<td><code>model\osemosys_fast_preprocessed.txt</code></td>
+<td>The OSeMOSYS model, in GMPL. Shared by both setups.</td>
+<td>B2: <code>glpsol</code> reads it (a storage-delay copy of it) to write the LP.</td>
+</tr>
+<tr>
+<td><code>docs\</code></td>
+<td>This documentation.</td>
+<td>People; Sphinx builds the website from it.</td>
+</tr>
+<tr>
+<td><code>tests\</code></td>
+<td>Tests that run without a solver.</td>
+<td><code>python -m unittest discover -s tests -p "test_*.py"</code>.</td>
+</tr>
+<tr>
+<td><code>timeslice_module\</code></td>
+<td>The tool that built the 20-timeslice fabric, with its inputs.</td>
+<td>People, by hand. The pipeline does not read it.</td>
+</tr>
+<tr>
+<td><code>tools\</code></td>
+<td>A script that regenerates the scenario catalogue page.</td>
+<td>The tests.</td>
+</tr>
+<tr>
+<td><code>workspace\</code></td>
+<td><strong>Everything generated</strong>: built workbooks, compiled CSVs, solver files, results, logs, RDM runs. See 1.4.</td>
+<td>Written by every stage. Git ignores it.</td>
+</tr>
+<tr>
+<td><code>environment.yaml</code></td>
+<td>The conda environment <code>OSTRAM-env</code>: Python, pandas, otoole, GLPK, CBC.</td>
+<td><code>conda env create</code>, and the environment check at the start of <code>run</code>.</td>
+</tr>
+<tr>
+<td><code>pyproject.toml</code></td>
+<td>The package definition.</td>
+<td><code>pip install -e .</code></td>
+</tr>
+<tr>
+<td><code>dvc.yaml</code>, <code>.dvc\</code></td>
+<td>Data version control.</td>
+<td><code>run</code> without <code>--skip-pull</code>. <code>rdm run</code> always skips it.</td>
+</tr>
+<tr>
+<td><code>README.md</code>, <code>AGENTS.md</code>, <code>CONTRIBUTING.md</code></td>
+<td>The front page; rules for AI agents; rules for changes.</td>
+<td>People.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-inside-ostram">1.2 Inside <code>ostram\</code></h3>
+<table>
+<thead>
+<tr>
+<th>Folder or file</th>
+<th>Role</th>
+<th>Stage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__main__.py</code></td>
+<td>The command line, <code>python -m ostram &lt;command&gt;</code>: picks the setup and workspace, then calls the module of the command.</td>
+<td>All</td>
+</tr>
+<tr>
+<td><code>paths.py</code>, <code>setups.py</code>, <code>setup_workspace.py</code></td>
+<td>Where every file is: project, workspace, the active setup's inputs and configuration.</td>
+<td>All</td>
+</tr>
+<tr>
+<td><code>examples.py</code></td>
+<td><code>example prepare</code> and <code>example report</code>.</td>
+<td>Setup, results</td>
+</tr>
+<tr>
+<td><code>pipeline\orchestration.py</code></td>
+<td><code>run</code>: the environment check, DVC, then A1 to B2 in order.</td>
+<td>All of <code>run</code></td>
+</tr>
+<tr>
+<td><code>pipeline\preparation\</code></td>
+<td><code>base_inputs.py</code> (<strong>A1</strong>), <code>transmission.py</code> (<strong>A2</strong>), and the country template, merge and validation commands.</td>
+<td>A1, A2</td>
+</tr>
+<tr>
+<td><code>pipeline\scenarios\</code></td>
+<td><strong>A3</strong>: <code>materializer.py</code> (builds the roots, then the derived scenarios), <code>transform.py</code> (a root's stages), <code>transformations\</code> (the stage scripts), <code>rules\</code> (the rule scripts named in the Control sheet), <code>scenario_edits.py</code> (the edits of a derived scenario or RDM future), <code>registry.py</code> (the list of scenarios).</td>
+<td>A3</td>
+</tr>
+<tr>
+<td><code>pipeline\compilation\</code></td>
+<td><strong>B1</strong>: <code>runner.py</code> and <code>compiler.py</code> turn workbooks into OSeMOSYS CSVs.</td>
+<td>B1</td>
+</tr>
+<tr>
+<td><code>pipeline\execution\</code></td>
+<td><strong>B2</strong>: <code>runner.py</code> (CSVs to datafile), <code>preprocess.py</code>, <code>model_file_adjustments\</code>, <code>orchestrator.py</code> (LP, solver, results), the concatenation modules.</td>
+<td>B2</td>
+</tr>
+<tr>
+<td><code>rdm\</code></td>
+<td><strong>RDM</strong>: <code>interface.py</code> (the workbook), <code>design.py</code> (futures and sampling), <code>collect.py</code> (the RDM CSVs), <code>cli.py</code> (the <code>rdm</code> command).</td>
+<td>Part 4</td>
+</tr>
+<tr>
+<td><code>reporting\</code></td>
+<td>The training dashboard and the summary workbook.</td>
+<td><code>example report</code></td>
+</tr>
+<tr>
+<td><code>resources\</code></td>
+<td>Package files: the otoole conversion format, empty CSV templates, the Maldives country template.</td>
+<td>B2, country commands</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-inside-examplesunescap_training">1.3 Inside <code>examples\unescap_training\</code></h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>What it holds</th>
+<th>Read by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setup.yaml</code></td>
+<td>The setup: where each input and configuration file is, which ones are copied to the workspace, the setup's policies (for example: no base-year pin), and the exact technologies and fuels the compiled model may hold.</td>
+<td>Every command with <code>--setup unescap_training</code></td>
+</tr>
+<tr>
+<td><code>inputs\osemosys_global\</code></td>
+<td>64 OSeMOSYS Global CSVs for Bangladesh and India East.</td>
+<td>A1 (through the workspace copy)</td>
+</tr>
+<tr>
+<td><code>inputs\scenarios\OSTRAM_Scenario_Inputs.xlsx</code></td>
+<td>The scenario workbook: the <strong>Control</strong> sheet (each root's rule scripts), costs, existing and planned generation, the interconnector, demand projections, RE targets, restrictions.</td>
+<td>A3 (through the workspace copy)</td>
+</tr>
+<tr>
+<td><code>inputs\scenarios\OSTRAM_Timeslice_Inputs.xlsx</code></td>
+<td>Year splits, demand profiles and capacity factors of the 20 timeslices.</td>
+<td>A3 (through the workspace copy)</td>
+</tr>
+<tr>
+<td><code>inputs\preparation\</code></td>
+<td><code>centerpoints.csv</code>, <code>secondary_technologies\Tech_Country_Matrix.xlsx</code>.</td>
+<td>A1, country commands</td>
+</tr>
+<tr>
+<td><code>config\preparation\</code></td>
+<td><code>Config_country_codes.yaml</code> (countries, regions, technology mapping), <code>Config_region_consolidation.yaml</code> (switched off).</td>
+<td>A1, A2, A3</td>
+</tr>
+<tr>
+<td><code>config\compilation\Config_MOMF_T1_A.yaml</code></td>
+<td>Years, timeslices, storage set, workbook names.</td>
+<td>A1, A3, B1, B2</td>
+</tr>
+<tr>
+<td><code>config\execution\Config_MOMF_T1_AB.yaml</code></td>
+<td>The solver (CBC), its tolerances and time limit, and the model-file adjustments.</td>
+<td>B2</td>
+</tr>
+<tr>
+<td><code>config\scenarios\registry.json</code></td>
+<td>The roots <code>BAU</code>, <code>A_Calibrated_BAU</code>, <code>B_Optimised_VRE</code>, <code>C_Target_VRE</code>, and their dependencies.</td>
+<td>Every command</td>
+</tr>
+<tr>
+<td><code>config\scenarios\&lt;root&gt;\*.yaml</code></td>
+<td>Each root's rule settings: retirement schedule, build cap, interconnector caps, storage floors, VRE targets.</td>
+<td>A3, the root's rules</td>
+</tr>
+<tr>
+<td><code>config\scenarios\technology_types.csv</code>, <code>ao_extension_decisions.csv</code></td>
+<td>The technology categories; which new technologies A3 adds to the workbooks.</td>
+<td>A3</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-inside-workspace-generated">1.4 Inside <code>workspace\</code> (generated)</h3>
+<p>For the training model everything is under <code>workspace\setups\unescap_training\</code>;
+for South Asia, directly under <code>workspace\</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>What it holds</th>
+<th>Written by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authorities\</code></td>
+<td>The workspace copies of the training inputs (OSeMOSYS Global CSVs, scenario workbook, timeslice workbook, preparation inputs). Some stages write into these, so the originals stay clean.</td>
+<td><code>example prepare</code></td>
+</tr>
+<tr>
+<td><code>preparation\og_csvs_inputs\</code>, <code>preparation\extra_inputs\</code></td>
+<td>The staged base CSVs; the emissions and storage workbooks.</td>
+<td>A1</td>
+</tr>
+<tr>
+<td><code>preparation\A1_Outputs\_post_a2_snapshot_&lt;root&gt;\</code></td>
+<td>Each root's model after A2: the starting point of every later build.</td>
+<td>A2</td>
+</tr>
+<tr>
+<td><code>preparation\A1_Outputs\A1_Outputs_&lt;scenario&gt;\</code></td>
+<td>The A-O workbooks of a root, derived scenario or RDM future (<code>A-O_Parametrization.xlsx</code>, <code>A-O_Demand.xlsx</code>, <code>A-O_AR_*.xlsx</code>), and for derived scenarios and futures the edit log <code>apply_patches_CHANGES_&lt;time&gt;.json</code>.</td>
+<td>A1, A2, A3</td>
+</tr>
+<tr>
+<td><code>scenarios\_run_&lt;time&gt;\</code></td>
+<td>A root's working folder during A3; removed at the end.</td>
+<td>A3</td>
+</tr>
+<tr>
+<td><code>compilation\A2_Output_Params\&lt;scenario&gt;\</code></td>
+<td>The compiled OSeMOSYS parameter CSVs.</td>
+<td>B1</td>
+</tr>
+<tr>
+<td><code>execution\A2_Outputs_Params_otoole\&lt;scenario&gt;\</code></td>
+<td>The CSVs normalised for otoole.</td>
+<td>B2</td>
+</tr>
+<tr>
+<td><code>execution\Executables\&lt;scenario&gt;_0\</code></td>
+<td>The datafiles (the last one, <code>…_StorageDelayN5_OpenBCK_RMCarefulXLSX.txt</code>, is what the solver sees), the LP, the solution, the input table <code>&lt;scenario&gt;_0_Input.csv</code>, the result table <code>…_output.csv</code> and <code>Outputs\</code>.</td>
+<td>B2</td>
+</tr>
+<tr>
+<td><code>execution\OSTRAM_StorageDelay_{Inputs,Outputs,Combined_Inputs_Outputs}.csv</code></td>
+<td>All scenarios in <code>Executables\</code> stacked, with dated copies.</td>
+<td>B2, at the end of a run</td>
+</tr>
+<tr>
+<td><code>reports\</code></td>
+<td>The training dashboard <code>unescap_training.html</code> and <code>snapshots\&lt;label&gt;.csv</code>.</td>
+<td><code>example report</code></td>
+</tr>
+<tr>
+<td><code>rdm\&lt;Run_Name&gt;\</code></td>
+<td>One RDM run: futures, experiment design, RDM CSVs.</td>
+<td><code>rdm generate</code>, <code>rdm run</code></td>
+</tr>
+<tr>
+<td><code>logs\&lt;run-id&gt;\run.log</code></td>
+<td>The full log of one run: every child command and its output.</td>
+<td><code>run</code>, <code>rdm run</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="15-folder-names-do-not-match-the-stage-labels">1.5 Folder names do not match the stage labels</h3>
+<p>The workspace folder names come from the original model-building scripts
+and predate the stage labels A1 to B2. Read them by what they hold, not by
+their prefix:</p>
+<ul>
+<li><code>preparation\A1_Outputs\</code> is not only A1's output. It holds the A1 + A2
+snapshots, every scenario and future that A3 builds, and the completed
+workbooks that B1 adds to each scenario's folder.</li>
+<li><code>compilation\A2_Output_Params\</code> is <strong>B1's</strong> output, not A2's.</li>
+<li><code>execution\A2_Outputs_Params_otoole\</code> is <strong>B2's</strong> output, not A2's.</li>
+</ul>
+<p>The chain, as folders:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Reads</th>
+<th>Writes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1 + A2</td>
+<td><code>inputs\osemosys_global\</code> (the raw OSeMOSYS Global CSVs)</td>
+<td><code>preparation\A1_Outputs\_post_a2_snapshot_&lt;root&gt;\</code> (built once, reused by later runs)</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>the snapshot, and for futures the run folder's <code>scenario.yaml</code></td>
+<td><code>preparation\A1_Outputs\A1_Outputs_&lt;scenario&gt;\</code>: the A-O workbooks and, for derived scenarios and futures, the edit log <code>apply_patches_CHANGES_&lt;time&gt;.json</code> inside that folder</td>
+</tr>
+<tr>
+<td>B1</td>
+<td><code>A1_Outputs_&lt;scenario&gt;\</code></td>
+<td><code>compilation\A2_Output_Params\&lt;scenario&gt;\</code> (OSeMOSYS parameter CSVs); the <code>*_COMPLETED.xlsx</code> workbooks in <code>A1_Outputs_&lt;scenario&gt;\</code></td>
+</tr>
+<tr>
+<td>B2</td>
+<td><code>compilation\A2_Output_Params\&lt;scenario&gt;\</code></td>
+<td><code>execution\A2_Outputs_Params_otoole\&lt;scenario&gt;\</code>, then <code>execution\Executables\&lt;scenario&gt;_0\</code> (datafile, LP, solution, results)</td>
+</tr>
+<tr>
+<td><code>rdm run</code> (collect)</td>
+<td><code>execution\Executables\&lt;future&gt;_0\</code> of every future</td>
+<td><code>rdm\&lt;Run_Name&gt;\RDM_Inputs.csv</code>, <code>RDM_Outputs.csv</code>, <code>RDM_Run_Status.csv</code></td>
+</tr>
+</tbody>
+</table>
+<p>The CSVs in <code>inputs\osemosys_global\</code> and in <code>compilation\A2_Output_Params\</code>
+have the same form (one OSeMOSYS parameter per file) but sit at opposite ends
+of the chain: the first are the starting data, the second are one
+scenario's finished parameters. B1 never writes into <code>inputs\</code>.</p>
+<hr>
+<h2 id="part-2-the-pipeline">Part 2. The pipeline</h2>
+<h3 id="21-commands-and-what-they-call">2.1 Commands and what they call</h3>
+<table>
+<thead>
+<tr>
+<th>You type</th>
+<th>It calls</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python -m ostram example prepare unescap_training</code></td>
+<td><code>ostram.examples</code> → <code>setup_workspace.prepare_setup</code></td>
+<td>Creates the training workspace and copies its inputs into <code>authorities\</code>.</td>
+</tr>
+<tr>
+<td><code>python -m ostram [--setup S] run --scenarios …</code></td>
+<td><code>ostram.pipeline.orchestration</code></td>
+<td>The whole pipeline, A1 to B2 (2.2).</td>
+</tr>
+<tr>
+<td><code>… run … --compile-only</code></td>
+<td>the same</td>
+<td>A1 to B2, stopping before the LP and the solver.</td>
+</tr>
+<tr>
+<td><code>python -m ostram [--setup S] transform --scenario R</code></td>
+<td><code>ostram.pipeline.scenarios.transform</code></td>
+<td>A3 for one root only.</td>
+</tr>
+<tr>
+<td><code>python -m ostram [--setup S] compile-inputs --scenarios …</code></td>
+<td><code>ostram.pipeline.compilation.runner</code></td>
+<td>B1 only.</td>
+</tr>
+<tr>
+<td><code>python -m ostram example report unescap_training [--capture L]</code></td>
+<td><code>ostram.examples</code> → <code>ostram.reporting.training_dashboard</code></td>
+<td>The dashboard; <code>--capture</code> saves the latest results as snapshot <code>L</code>.</td>
+</tr>
+<tr>
+<td><code>python -m ostram --setup S country template / merge / validate</code></td>
+<td><code>ostram.pipeline.preparation.country_commands</code></td>
+<td>Add a country's data (exercise A).</td>
+</tr>
+<tr>
+<td><code>python -m ostram --setup S rdm template / generate / run / collect</code></td>
+<td><code>ostram.rdm.cli</code></td>
+<td>RDM (Part 4). <code>rdm run</code> calls <code>orchestration</code> itself.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-the-stages-of-run">2.2 The stages of <code>run</code></h3>
+<p><code>run</code> checks the conda environment, skips DVC with <code>--skip-pull</code>, then runs
+five stages. Each stage is a separate Python process, started as
+<code>python -B -m &lt;module&gt;</code>; the full command lines are in the run log.</p>
+<pre class="mermaid"><svg aria-roledescription="flowchart-v2" role="graphics-document document" viewBox="-8 -8 267.515625 856.09375" style="max-width: 267.515625px;" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="100%" id="mermaid-1793182566566"><style>#mermaid-1793182566566{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#000000;}#mermaid-1793182566566 .error-icon{fill:#552222;}#mermaid-1793182566566 .error-text{fill:#552222;stroke:#552222;}#mermaid-1793182566566 .edge-thickness-normal{stroke-width:2px;}#mermaid-1793182566566 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1793182566566 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1793182566566 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1793182566566 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1793182566566 .marker{fill:#666;stroke:#666;}#mermaid-1793182566566 .marker.cross{stroke:#666;}#mermaid-1793182566566 svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#mermaid-1793182566566 .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#000000;}#mermaid-1793182566566 .cluster-label text{fill:#333;}#mermaid-1793182566566 .cluster-label span,#mermaid-1793182566566 p{color:#333;}#mermaid-1793182566566 .label text,#mermaid-1793182566566 span,#mermaid-1793182566566 p{fill:#000000;color:#000000;}#mermaid-1793182566566 .node rect,#mermaid-1793182566566 .node circle,#mermaid-1793182566566 .node ellipse,#mermaid-1793182566566 .node polygon,#mermaid-1793182566566 .node path{fill:#eee;stroke:#999;stroke-width:1px;}#mermaid-1793182566566 .flowchart-label text{text-anchor:middle;}#mermaid-1793182566566 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1793182566566 .node .label{text-align:center;}#mermaid-1793182566566 .node.clickable{cursor:pointer;}#mermaid-1793182566566 .arrowheadPath{fill:#333333;}#mermaid-1793182566566 .edgePath .path{stroke:#666;stroke-width:2.0px;}#mermaid-1793182566566 .flowchart-link{stroke:#666;fill:none;}#mermaid-1793182566566 .edgeLabel{background-color:white;text-align:center;}#mermaid-1793182566566 .edgeLabel rect{opacity:0.5;background-color:white;fill:white;}#mermaid-1793182566566 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-1793182566566 .cluster rect{fill:hsl(0, 0%, 98.9215686275%);stroke:#707070;stroke-width:1px;}#mermaid-1793182566566 .cluster text{fill:#333;}#mermaid-1793182566566 .cluster span,#mermaid-1793182566566 p{color:#333;}#mermaid-1793182566566 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:hsl(-160, 0%, 93.3333333333%);border:1px solid #707070;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1793182566566 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-1793182566566 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker orient="auto" markerHeight="12" markerWidth="12" markerUnits="userSpaceOnUse" refY="5" refX="6" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566566_flowchart-pointEnd"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 0 L 10 5 L 0 10 z"></path></marker><marker orient="auto" markerHeight="12" markerWidth="12" markerUnits="userSpaceOnUse" refY="5" refX="4.5" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566566_flowchart-pointStart"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 5 L 10 10 L 10 0 z"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="11" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566566_flowchart-circleEnd"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="-1" viewBox="0 0 10 10" class="marker flowchart" id="mermaid-1793182566566_flowchart-circleStart"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="12" viewBox="0 0 11 11" class="marker cross flowchart" id="mermaid-1793182566566_flowchart-crossEnd"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="-1" viewBox="0 0 11 11" class="marker cross flowchart" id="mermaid-1793182566566_flowchart-crossStart"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-IN LE-A1" id="L-IN-A1-0" d="M125.758,66.188L125.758,70.354C125.758,74.521,125.758,82.854,125.758,90.304C125.758,97.754,125.758,104.321,125.758,107.604L125.758,110.888"></path><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-A1 LE-A2" id="L-A1-A2-0" d="M125.758,207.969L125.758,212.135C125.758,216.302,125.758,224.635,125.758,232.085C125.758,239.535,125.758,246.102,125.758,249.385L125.758,252.669"></path><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-A2 LE-A3" id="L-A2-A3-0" d="M125.758,349.75L125.758,353.917C125.758,358.083,125.758,366.417,125.758,373.867C125.758,381.317,125.758,387.883,125.758,391.167L125.758,394.45"></path><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-A3 LE-B1" id="L-A3-B1-0" d="M125.758,491.531L125.758,495.698C125.758,499.865,125.758,508.198,125.758,515.648C125.758,523.098,125.758,529.665,125.758,532.948L125.758,536.231"></path><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-B1 LE-B2" id="L-B1-B2-0" d="M125.758,607.719L125.758,611.885C125.758,616.052,125.758,624.385,125.758,631.835C125.758,639.285,125.758,645.852,125.758,649.135L125.758,652.419"></path><path marker-end="url(#mermaid-1793182566566_flowchart-pointEnd)" style="fill:none;" class="edge-thickness-normal edge-pattern-solid flowchart-link LS-B2 LE-OUT" id="L-B2-OUT-0" d="M125.758,723.906L125.758,728.073C125.758,732.24,125.758,740.573,125.758,748.023C125.758,755.473,125.758,762.04,125.758,765.323L125.758,768.606"></path></g><g class="edgeLabels"><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><foreignObject height="0" width="0"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g transform="translate(125.7578125, 33.09375)" data-id="IN" data-node="true" id="flowchart-IN-8" class="node default default flowchart-label"><rect height="66.1875" width="232.875" y="-33.09375" x="-116.4375" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-108.9375, -25.59375)" style="" class="label"><rect></rect><foreignObject height="51.1875" width="217.875"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">inputs + config<br>(workspace copies for training)</span></div></foreignObject></g></g><g transform="translate(125.7578125, 162.078125)" data-id="A1" data-node="true" id="flowchart-A1-9" class="node default default flowchart-label"><rect height="91.78125" width="189.28125" y="-45.890625" x="-94.640625" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-87.140625, -38.390625)" style="" class="label"><rect></rect><foreignObject height="76.78125" width="174.28125"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">A1 base_inputs<br>CSVs → A-O workbooks<br>for every root</span></div></foreignObject></g></g><g transform="translate(125.7578125, 303.859375)" data-id="A2" data-node="true" id="flowchart-A2-11" class="node default default flowchart-label"><rect height="91.78125" width="139.53125" y="-45.890625" x="-69.765625" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-62.265625, -38.390625)" style="" class="label"><rect></rect><foreignObject height="76.78125" width="124.53125"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">A2 transmission<br>adds the grid,<br>snapshot per root</span></div></foreignObject></g></g><g transform="translate(125.7578125, 445.640625)" data-id="A3" data-node="true" id="flowchart-A3-13" class="node default default flowchart-label"><rect height="91.78125" width="194.640625" y="-45.890625" x="-97.3203125" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-89.8203125, -38.390625)" style="" class="label"><rect></rect><foreignObject height="76.78125" width="179.640625"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">A3 materializer<br>roots: Control-sheet rules<br>derived / futures: edits</span></div></foreignObject></g></g><g transform="translate(125.7578125, 574.625)" data-id="B1" data-node="true" id="flowchart-B1-15" class="node default default flowchart-label"><rect height="66.1875" width="251.515625" y="-33.09375" x="-125.7578125" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-118.2578125, -25.59375)" style="" class="label"><rect></rect><foreignObject height="51.1875" width="236.515625"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">B1 compilation.runner<br>workbooks → OSeMOSYS CSVs</span></div></foreignObject></g></g><g transform="translate(125.7578125, 690.8125)" data-id="B2" data-node="true" id="flowchart-B2-17" class="node default default flowchart-label"><rect height="66.1875" width="250.359375" y="-33.09375" x="-125.1796875" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-117.6796875, -25.59375)" style="" class="label"><rect></rect><foreignObject height="51.1875" width="235.359375"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">B2 execution.runner<br>datafile → LP → solver → results</span></div></foreignObject></g></g><g transform="translate(125.7578125, 807)" data-id="OUT" data-node="true" id="flowchart-OUT-19" class="node default default flowchart-label"><rect height="66.1875" width="153.765625" y="-33.09375" x="-76.8828125" ry="0" rx="0" style="" class="basic label-container"></rect><g transform="translate(-69.3828125, -25.59375)" style="" class="label"><rect></rect><foreignObject height="51.1875" width="138.765625"><div style="display: inline-block; white-space: nowrap;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Executables/&lt;S&gt;_0<br>combined CSVs</span></div></foreignObject></g></g></g></g></g></svg></pre>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Module</th>
+<th>Reads</th>
+<th>Writes (under the workspace)</th>
+<th>When it runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A1</strong> Prepare the base model</td>
+<td><code>ostram.pipeline.preparation.base_inputs</code></td>
+<td>the OSeMOSYS Global CSVs, <code>Config_country_codes.yaml</code>, <code>Tech_Country_Matrix.xlsx</code>, the workbook templates, <code>Config_MOMF_T1_A.yaml</code></td>
+<td><code>preparation\og_csvs_inputs\</code>, <code>preparation\extra_inputs\</code>, <code>A1_Outputs_&lt;root&gt;\</code> for all four roots</td>
+<td>Only when a needed root has no post-A2 snapshot (the first run in a workspace).</td>
+</tr>
+<tr>
+<td><strong>A2</strong> Add the transmission network</td>
+<td><code>ostram.pipeline.preparation.transmission</code></td>
+<td><code>Config_country_codes.yaml</code>, the roots' workbooks</td>
+<td>the grid-tier and interconnector rows, then <code>_post_a2_snapshot_&lt;root&gt;\</code></td>
+<td>Together with A1.</td>
+</tr>
+<tr>
+<td><strong>A3</strong> Build the scenarios</td>
+<td><code>ostram.pipeline.scenarios.materializer</code></td>
+<td>the registry, the scenario and timeslice workbooks, the roots' rule YAMLs, each derived scenario's or future's <code>scenario.yaml</code></td>
+<td><code>A1_Outputs_&lt;root&gt;\</code>, <code>A1_Outputs_&lt;scenario&gt;\</code>, <code>_scenario_materialization.json</code></td>
+<td>Every run, for the selected scenarios and the roots they need.</td>
+</tr>
+<tr>
+<td><strong>B1</strong> Compile</td>
+<td><code>ostram.pipeline.compilation.runner</code>, which runs <code>…compilation.compiler</code> per scenario</td>
+<td>the scenario's four A-O workbooks, <code>extra_inputs\</code>, the compilation configuration</td>
+<td><code>compilation\A2_Output_Params\&lt;scenario&gt;\*.csv</code></td>
+<td>Every run.</td>
+</tr>
+<tr>
+<td><strong>B2</strong> Run and collect</td>
+<td><code>ostram.pipeline.execution.runner</code> → <code>…execution.orchestrator</code></td>
+<td>the compiled CSVs, <code>Config_MOMF_T1_AB.yaml</code>, <code>model\osemosys_fast_preprocessed.txt</code>, <code>firm_capacity_fallbacks_by_cr.xlsx</code></td>
+<td><code>execution\A2_Outputs_Params_otoole\&lt;scenario&gt;\</code>, <code>execution\Executables\&lt;scenario&gt;_0\</code>, the combined CSVs</td>
+<td>Every run; <code>--compile-only</code> stops it after the datafile.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-inside-a3">2.3 Inside A3</h3>
+<p><strong>A root</strong> (for example <code>B_Optimised_VRE</code>) is rebuilt from its post-A2
+snapshot in a working folder <code>scenarios\_run_&lt;time&gt;\</code>, through
+<code>ostram.pipeline.scenarios.transform</code>:</p>
+<table>
+<thead>
+<tr>
+<th>A3 step</th>
+<th>Scripts (in <code>ostram\pipeline\scenarios\</code>)</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stage 0</td>
+<td><code>transformations\scenario_workbooks</code></td>
+<td>Takes the root's rows of the scenario workbook, merged over the <code>BAU</code> rows.</td>
+</tr>
+<tr>
+<td>Stage 1</td>
+<td><code>transformations\merge_timeslices</code>, <code>extract_ao_extensions</code>, <code>ao_extension_decisions</code>, <code>update_ao_from_extensions</code>, <code>apply_manual_fixes</code>, <code>propagate_timeslice_fabric</code></td>
+<td>Writes the workbook's values and any new technologies into the A-O workbooks; applies the 20 timeslices.</td>
+</tr>
+<tr>
+<td>Stage 1b</td>
+<td><code>insert_reserve_margin</code>, <code>add_max_capacity_investment_rule</code>, <code>fix_elc_pmode_revert</code>, <code>pre_solver_validation</code></td>
+<td>Reserve margin, investment caps, checks.</td>
+</tr>
+<tr>
+<td>Stages 2–3</td>
+<td><code>add_ao_c2a</code>, <code>fix_pwrpet_clear</code>, <code>fix_trn_residuals</code>, <code>clear_stale_unbinding_caps</code>, <code>cap_trn_to_residual</code></td>
+<td>Unit conversions; interconnector residual capacities and caps.</td>
+</tr>
+<tr>
+<td>Stage 5, the root's rules</td>
+<td><code>rules\*.py</code>, in the order of the <strong>Control</strong> sheet, each reading <code>config\scenarios\&lt;root&gt;\&lt;rule&gt;.yaml</code></td>
+<td>For the training roots: <code>BAU</code> build cap; <code>A_Calibrated_BAU</code> retirement, build cap, minimum capacity floors, interconnectors; <code>B_Optimised_VRE</code> retirement, build cap, interconnectors, interconnector direction, storage minimum investment; <code>C_Target_VRE</code> retirement, build cap, VRE targets (from the solved <code>A_Calibrated_BAU</code>), interconnectors, storage minimum investment.</td>
+</tr>
+<tr>
+<td>Shared rules</td>
+<td><code>rules\apply_interconnector_costs</code>, <code>apply_internal_transmission</code>, <code>apply_internal_tx_losses</code>, then <code>apply_base_year_pin</code> where the setup uses it (South Asia, not training)</td>
+<td>Costs and losses of the grid; the reviewed 2023–2026 values.</td>
+</tr>
+<tr>
+<td>Stage 6</td>
+<td><code>transformations\sync_og_to_ts20</code>, <code>transform</code></td>
+<td>Writes the finished A-O workbooks to <code>A1_Outputs_&lt;root&gt;\</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A derived scenario or an RDM future</strong> does not go through these stages: it
+starts from the root's finished <code>A1_Outputs_&lt;root&gt;\</code>. <code>scenario_edits.py</code>
+copies that folder to <code>A1_Outputs_&lt;scenario&gt;\</code>, applies the shared VRE
+ceilings when switched on, applies the scenario's edits in order, re-applies
+the base-year pin where the setup uses one, and writes the edit log.</p>
+<h3 id="24-inside-b2-for-one-scenario">2.4 Inside B2, for one scenario</h3>
+<table>
+<thead>
+<tr>
+<th>B2 step</th>
+<th>Module</th>
+<th>Writes, in <code>execution\Executables\&lt;S&gt;_0\</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normalise</td>
+<td><code>execution.runner</code></td>
+<td>(the CSVs in <code>execution\A2_Outputs_Params_otoole\&lt;S&gt;\</code>)</td>
+</tr>
+<tr>
+<td>Convert to a datafile</td>
+<td>otoole</td>
+<td><code>&lt;S&gt;_0.txt</code>, and <code>&lt;S&gt;_0_Input.csv</code> (the inputs as a table)</td>
+</tr>
+<tr>
+<td>Preprocess</td>
+<td><code>execution.preprocess</code></td>
+<td><code>Pre_processed_&lt;S&gt;_0.txt</code></td>
+</tr>
+<tr>
+<td>Storage delay</td>
+<td><code>model_file_adjustments.storage_delay</code></td>
+<td><code>…_StorageDelayN5.txt</code> and an adjusted model file</td>
+</tr>
+<tr>
+<td>Open backstop caps</td>
+<td><code>model_file_adjustments.open_pwrbck_caps</code></td>
+<td><code>…_OpenBCK.txt</code></td>
+</tr>
+<tr>
+<td>Reserve-margin fallbacks</td>
+<td><code>model_file_adjustments.reserve_margin_repair_xlsx</code></td>
+<td><code>…_RMCarefulXLSX.txt</code>: <strong>the datafile the solver sees</strong></td>
+</tr>
+<tr>
+<td><em><code>--compile-only</code> stops here</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>LP</td>
+<td><code>glpsol --wlp</code></td>
+<td><code>…_output.lp</code></td>
+</tr>
+<tr>
+<td>Solve</td>
+<td>CBC (training) or CPLEX (South Asia)</td>
+<td><code>…_output.sol</code>; B2 accepts only an optimal solution</td>
+</tr>
+<tr>
+<td>Results</td>
+<td>otoole and the concatenation</td>
+<td><code>Outputs\</code>, <code>…_output.csv</code> (the results as a table)</td>
+</tr>
+</tbody>
+</table>
+<p>After the last scenario of the run, B2 stacks every scenario folder in
+<code>Executables\</code> into <code>execution\OSTRAM_StorageDelay_*.csv</code>.</p>
+<hr>
+<h2 id="part-3-the-baseline">Part 3. The baseline</h2>
+<p>This part follows the training exercises: set up the training model, then
+build and solve its root scenarios. Do it before RDM. Every RDM future starts
+from one of these roots, so they must build and solve on your machine first,
+and their results are the reference the futures are compared with.</p>
+<h3 id="step-31-open-the-prompt">Step 3.1. Open the prompt</h3>
+<pre><code class="language-bat">cd &lt;your OSTRAM folder&gt;
+conda activate OSTRAM-env
+set PYTHONUTF8=1
+</code></pre>
+<p>In PowerShell the last line is <code>$env:PYTHONUTF8 = '1'</code>. Repeat this in every
+new prompt. Every stage runs under the Python of the active environment, and
+<code>PYTHONUTF8=1</code> stops Windows from misreading the model files.</p>
+<h3 id="step-32-be-on-the-rdm-branch">Step 3.2. Be on the RDM branch</h3>
+<p>The first time:</p>
+<pre><code class="language-bat">git fetch origin
+git switch feat/rdm-futures
+</code></pre>
+<p>Later, to get new changes: <code>git pull</code>. Check with:</p>
+<pre><code class="language-bat">git branch
+python -m ostram rdm --help
+</code></pre>
+<p><code>git branch</code> puts <code>*</code> next to <code>feat/rdm-futures</code>, and the help lists
+<code>template</code>, <code>generate</code>, <code>run</code> and <code>collect</code>. If <code>rdm</code> is an unknown command,
+the environment runs OSTRAM from another folder: <code>python -c "import ostram; print(ostram.__file__)"</code> shows which; run <code>pip install -e .</code> from this clone.</p>
+<h3 id="step-33-prepare-the-training-model-once">Step 3.3. Prepare the training model (once)</h3>
+<pre><code class="language-bat">python -m ostram example prepare unescap_training
+</code></pre>
+<p><strong>Inside.</strong> <code>ostram.examples</code> creates <code>workspace\setups\unescap_training\</code> and
+copies the training <strong>inputs</strong> into its <code>authorities\</code> folder (1.4). The
+configuration is not copied: every stage reads it from
+<code>examples\unescap_training\</code>. When you edit an original input later, the next
+command refreshes its copy. No model is built yet. To start again from
+scratch, delete <code>workspace\setups\unescap_training\</code> and run this step again.</p>
+<h3 id="step-34-build-the-roots-without-solving">Step 3.4. Build the roots without solving</h3>
+<pre><code class="language-bat">python -m ostram --setup unescap_training run --scenarios "A_Calibrated_BAU,B_Optimised_VRE" --compile-only --skip-pull
+</code></pre>
+<p><strong>Inside</strong>, in order (2.2):</p>
+<ol>
+<li><strong>A1 + A2</strong>, the first time only: the base model is built from the
+OSeMOSYS Global CSVs for all four roots, the grid is added, and each root
+gets its snapshot in <code>preparation\A1_Outputs\_post_a2_snapshot_&lt;root&gt;\</code>.</li>
+<li><strong>A3</strong>: <code>BAU</code> is built first, because <code>A_Calibrated_BAU</code> inherits its
+restrictions; then <code>A_Calibrated_BAU</code> and <code>B_Optimised_VRE</code>, each with the
+rule scripts of its Control-sheet row (2.3).</li>
+<li><strong>B1</strong>: the two roots are compiled to CSVs.</li>
+<li><strong>B2</strong>: the datafiles are written; no LP, no solve.</li>
+</ol>
+<p><strong>Check.</strong> <code>preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\A-O_Parametrization.xlsx</code>
+exists, and the console ends with <code>OSTRAM compile-only run completed successfully</code>.</p>
+<h3 id="step-35-solve-the-roots">Step 3.5. Solve the roots</h3>
+<pre><code class="language-bat">python -m ostram --setup unescap_training run --scenarios "A_Calibrated_BAU,B_Optimised_VRE" --skip-pull
+</code></pre>
+<p>A1 and A2 are skipped (the snapshots exist); A3, B1 and B2 run again, and B2
+now writes the LP and solves each root with CBC. Then:</p>
+<pre><code class="language-bat">python -m ostram --setup unescap_training run --scenarios "C_Target_VRE" --skip-pull
+</code></pre>
+<p><code>C_Target_VRE</code> sets its renewable targets from the solved
+<code>A_Calibrated_BAU</code>, which the registry finds in
+<code>execution\Executables\A_Calibrated_BAU_0\</code> of the same workspace. That is why
+A is solved first.</p>
+<p><strong>Check.</strong> Each root has an <code>…_output.csv</code> in its
+<code>execution\Executables\&lt;root&gt;_0\</code> folder, and the log shows
+<code>CBC solution status: Optimal</code>.</p>
+<h3 id="step-36-capture-the-baseline-and-look-at-it">Step 3.6. Capture the baseline and look at it</h3>
+<pre><code class="language-bat">python -m ostram example report unescap_training --capture baseline
+python -m ostram example report unescap_training
+</code></pre>
+<p>The first command copies the latest combined results
+(<code>execution\OSTRAM_StorageDelay_Combined_Inputs_Outputs.csv</code>) to
+<code>reports\snapshots\baseline.csv</code>, and both write the dashboard
+<code>reports\unescap_training.html</code>. Open it in a browser. Later snapshots (with
+another <code>--capture</code> label) can be compared with this baseline.</p>
+<h3 id="step-37-changing-the-models-structure-exercises-a-and-b">Step 3.7. Changing the model's structure (exercises A and B)</h3>
+<p>A new country or a new interconnector changes the <strong>structure</strong> of the model:
+new technologies, fuels and regions. That belongs in the baseline, not in RDM,
+because it reaches stages A1 and A2 and configuration files that every
+scenario shares. The training exercises do it like this:</p>
+<table>
+<thead>
+<tr>
+<th>Exercise</th>
+<th>What changes</th>
+<th>Where</th>
+<th>Picked up by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: add a country</td>
+<td>The country's data, generated with <code>country template</code>, merged into the OSeMOSYS Global inputs with <code>country merge</code>, checked with <code>country validate</code></td>
+<td>the workspace copy of the inputs</td>
+<td>A1</td>
+</tr>
+<tr>
+<td></td>
+<td>The country in <code>country_data</code> and <code>countries</code></td>
+<td><code>config\preparation\Config_country_codes.yaml</code></td>
+<td>A1, A2</td>
+</tr>
+<tr>
+<td></td>
+<td>Its technologies and its firm-capacity row</td>
+<td><code>technology_types.csv</code>, <code>firm_capacity_fallbacks_by_cr.xlsx</code></td>
+<td>A3, B2</td>
+</tr>
+<tr>
+<td>B: add an interconnector</td>
+<td>Rows in <code>Interconnector_Params</code> and <code>Fixed_Horizon_Parameters</code></td>
+<td>the workspace copy of the scenario workbook</td>
+<td>A3, stage 1</td>
+</tr>
+<tr>
+<td></td>
+<td>The technology as an interconnector, and its extension decision</td>
+<td><code>technology_types.csv</code>, <code>ao_extension_decisions.csv</code></td>
+<td>A3</td>
+</tr>
+<tr>
+<td></td>
+<td>Its investment caps per root</td>
+<td><code>config\scenarios\&lt;root&gt;\relax_interconnectors.yaml</code></td>
+<td>A3, the root's rules</td>
+</tr>
+</tbody>
+</table>
+<p>After such a change, rebuild the baseline from step 3.4; when A1 or A2 inputs
+changed, delete the workspace and start from step 3.3. The exercise pages use
+an older version's names (<code>--profile unescap</code>, <code>examples\unescap\</code>); with this
+code they are <code>--setup unescap_training</code> and <code>examples\unescap_training\</code>. The
+training setup also lists the exact technologies and fuels its compiled model
+may hold (<code>domain_contract</code> in <code>setup.yaml</code>), so new ones must be added there
+too.</p>
+<p>Once the structure is in the baseline, RDM can vary it: for example, futures
+with and without the new interconnector, or with its cost and capacity
+sampled (Part 4).</p>
+<hr>
+<h2 id="part-4-rdm-futures">Part 4. RDM futures</h2>
+<p>With the baseline in place, RDM runs the same model across many futures.
+<strong>A future is the root plus a list of changes.</strong> You describe the futures in
+one Excel workbook; <code>rdm run</code> builds each one as a derived scenario of the
+root (2.3), runs the normal pipeline on all of them, and collects one input
+CSV and one output CSV.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>You type</th>
+<th>OSTRAM does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.1</td>
+<td><code>rdm template</code></td>
+<td>Writes the Excel interface</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td>(fill the workbook)</td>
+<td>–</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td><code>rdm generate</code></td>
+<td>Checks the workbook, creates the futures, writes the run folder</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td><code>rdm run</code></td>
+<td>Builds, compiles and solves every future, then collects the CSVs</td>
+</tr>
+<tr>
+<td>4.5</td>
+<td>(open the results)</td>
+<td>–</td>
+</tr>
+<tr>
+<td>4.6</td>
+<td>change, run again</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<h3 id="step-41-get-the-interface-workbook">Step 4.1. Get the interface workbook</h3>
+<pre><code class="language-bat">python -m ostram --setup unescap_training rdm template --out Interface_OSTRAM_RDM.xlsx
+</code></pre>
+<p>This only writes an Excel file, <code>Interface_OSTRAM_RDM.xlsx</code>, in your OSTRAM
+folder. <code>rdm template</code> reads the technology and fuel names of the root
+<code>B_Optimised_VRE</code> from <code>A1_Outputs_B_Optimised_VRE\</code> (built in step 3.4) to
+fill the Selector dropdown.</p>
+<p><strong>Where the workbook lives.</strong> Keep it in your OSTRAM folder, where you run the
+commands. Each run reads it from there and copies it into its run folder as a
+record:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Where</th>
+<th>Written by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your workbook, the one you edit</td>
+<td><code>&lt;your OSTRAM folder&gt;\Interface_OSTRAM_RDM.xlsx</code></td>
+<td>you, or <code>rdm template</code></td>
+</tr>
+<tr>
+<td>The run's copy</td>
+<td><code>workspace\setups\unescap_training\rdm\&lt;Run_Name&gt;\interface.xlsx</code></td>
+<td><code>rdm generate</code> and <code>rdm run</code></td>
+</tr>
+</tbody>
+</table>
+<p>Always edit your workbook, not the copy. The file name is not the run name:
+the run name is <code>Run_Name</code> on the Setup sheet (step 4.2).</p>
+<p>The template has six sheets (README, Setup, Futures, Future_Changes,
+Uncertainty_Table, Outputs) and a hidden <code>Lists</code> sheet for the dropdowns.
+Futures, Future_Changes and Uncertainty_Table come pre-filled with the worked
+example of step 4.2, from row 2; overwrite or delete it. <code>--blank</code> leaves it
+out.</p>
+<h3 id="step-42-fill-the-workbook">Step 4.2. Fill the workbook</h3>
+<p><strong>Setup</strong></p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Example</th>
+<th>What it decides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Run_Name</code></td>
+<td><code>test01</code></td>
+<td>The run folder <code>rdm\test01\</code></td>
+</tr>
+<tr>
+<td><code>Base_Scenario</code></td>
+<td><code>B_Optimised_VRE</code></td>
+<td>The root every future starts from</td>
+</tr>
+<tr>
+<td><code>Samples_Per_Future</code></td>
+<td><code>1</code></td>
+<td>Sampled variants per named future; 0 means no sampling</td>
+</tr>
+<tr>
+<td><code>Random_Seed</code></td>
+<td><code>12345</code></td>
+<td>Same seed, same sampled values</td>
+</tr>
+<tr>
+<td><code>Run_Central_Future</code></td>
+<td><code>Y</code></td>
+<td>Also run each named future without sampled values</td>
+</tr>
+<tr>
+<td><code>Apply_VRE_Ceilings</code></td>
+<td><code>Auto</code></td>
+<td>The shared solar and wind ceilings; the training setup has none</td>
+</tr>
+<tr>
+<td><code>Model_First_Year</code>, <code>Model_Last_Year</code></td>
+<td><code>2023</code>, <code>2050</code></td>
+<td>Where a change with an open end starts or stops</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Futures</strong></p>
+<table>
+<thead>
+<tr>
+<th>Future_ID</th>
+<th>Name</th>
+<th>Run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F00</td>
+<td>Baseline</td>
+<td>Y</td>
+</tr>
+<tr>
+<td>F01</td>
+<td>Cheap solar</td>
+<td>Y</td>
+</tr>
+<tr>
+<td>F02</td>
+<td>High demand, dear coal</td>
+<td>Y</td>
+</tr>
+</tbody>
+</table>
+<p>A future with no changes is the root itself: <strong>F00 is the baseline future</strong>,
+the root solved again inside the RDM run, so its results sit in the same CSVs
+as the other futures.</p>
+<p><strong>Future_Changes: what makes each future different</strong></p>
+<table>
+<thead>
+<tr>
+<th>Future_ID</th>
+<th>Sheet</th>
+<th>Parameter</th>
+<th>Selector_Type</th>
+<th>Selector</th>
+<th>Operation</th>
+<th>Value</th>
+<th>Year_From</th>
+<th>Year_To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F01</td>
+<td>Secondary Techs</td>
+<td>CapitalCost</td>
+<td>Tech_Prefix</td>
+<td>PWRSPV</td>
+<td>Multiply_Ramp</td>
+<td>0.7</td>
+<td>2026</td>
+<td>2035</td>
+</tr>
+<tr>
+<td>F02</td>
+<td>Demand_Projection</td>
+<td>SpecifiedAnnualDemand</td>
+<td>Fuel_Prefix</td>
+<td>ELC</td>
+<td>Multiply</td>
+<td>1.15</td>
+<td>2027</td>
+<td></td>
+</tr>
+<tr>
+<td>F02</td>
+<td>VariableCost</td>
+<td>VariableCost</td>
+<td>Tech</td>
+<td>MINCOABGD</td>
+<td>Multiply</td>
+<td>2</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>In words: in F01 the capital cost of every solar plant (<code>PWRSPV…</code>) falls from
+100 % in 2026 to 70 % in 2035 and stays there; in F02 electricity demand is
+15 % higher from 2027, and Bangladesh's coal price doubles.</p>
+<p><code>Sheet</code>, <code>Selector</code> and <code>Parameter</code> point to cells in the root's model
+workbooks in <code>preparation\A1_Outputs\A1_Outputs_B_Optimised_VRE\</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Workbook</th>
+<th>Sheet</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A-O_Parametrization.xlsx</code></td>
+<td>Secondary Techs</td>
+<td>power plants, storage, interconnectors (<code>PWR…</code>, <code>TRN…</code>)</td>
+</tr>
+<tr>
+<td></td>
+<td>Primary Techs</td>
+<td>fuel supply (<code>MIN…</code>)</td>
+</tr>
+<tr>
+<td></td>
+<td>Demand Techs</td>
+<td>the grid tiers between plants and demand</td>
+</tr>
+<tr>
+<td></td>
+<td>VariableCost</td>
+<td>fuel prices and other running costs</td>
+</tr>
+<tr>
+<td><code>A-O_Demand.xlsx</code></td>
+<td>Demand_Projection</td>
+<td>electricity demand, one row per demand fuel</td>
+</tr>
+</tbody>
+</table>
+<p>A change applies to the rows whose <strong>Tech</strong> column (on Demand_Projection:
+<strong>Fuel/Tech</strong>) matches the Selector and whose <strong>Parameter</strong> column matches
+Parameter, in the year columns given. Open these workbooks to find the names
+to type. They are not the input file <code>OSTRAM_Scenario_Inputs.xlsx</code>, whose
+sheets have similar names with underscores; RDM never changes that file.</p>
+<p>Operations: <code>Multiply</code>, <code>Multiply_Ramp</code> (a straight line from 1 at
+Year_From to Value at Year_To, held after), <code>Set</code>, and <code>Copy_From_Tech</code> (copy
+every year from the technology named in Value). Blank years mean every year.</p>
+<p><strong>Uncertainty_Table: what is sampled inside every future</strong></p>
+<table>
+<thead>
+<tr>
+<th>X_Num</th>
+<th>X_Category</th>
+<th>Involved_Scenarios</th>
+<th>Sheet</th>
+<th>Exact_Parameters_Involved_in_Osemosys</th>
+<th>Selector_Type</th>
+<th>Involved_First_Sets_in_Osemosys</th>
+<th>X_Mathematical_Type</th>
+<th>Min_Value</th>
+<th>Max_Value</th>
+<th>Initial_Year_of_Uncertainty</th>
+<th>Final_Year_of_Uncertainty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>X1</td>
+<td>Demand growth</td>
+<td>ALL</td>
+<td>Demand_Projection</td>
+<td>SpecifiedAnnualDemand</td>
+<td>Fuel_Prefix</td>
+<td>ELC</td>
+<td>Multiply_Ramp</td>
+<td>0.9</td>
+<td>1.1</td>
+<td>2026</td>
+<td>2050</td>
+</tr>
+<tr>
+<td>X2</td>
+<td>Gas price</td>
+<td>ALL</td>
+<td>VariableCost</td>
+<td>VariableCost</td>
+<td>Tech_Prefix</td>
+<td>MINGAS</td>
+<td>Multiply</td>
+<td>0.8</td>
+<td>1.5</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The column names follow the OSeMOSYS RDM interface (<code>Interface_RDM.xlsx</code>)
+where a column means the same thing; <code>Sheet</code>, <code>Selector_Type</code> and <code>Linked_To</code>
+are OSTRAM's own. They play the parts of <code>Parameter</code>, <code>Selector</code>, <code>Method</code>,
+<code>Min</code>, <code>Max</code>, <code>Year_From</code> and <code>Year_To</code> in Future_Changes. Workbooks written
+before, with the short names <code>X_ID</code>, <code>Name</code>, <code>Applies_To</code> and so on, still
+read.</p>
+<p>Each sample draws one value of X1 and one of X2. <code>Involved_Scenarios = ALL</code>
+layers them inside every future; <code>F01, F02</code> (or <code>F01 ; F02</code>) limits them to
+those two. <code>X_Num</code> may be a number: <code>1</code> is the uncertainty <code>X1</code>. <code>Linked_To</code>
+makes one row move with another. These columns do not carry over the rest of
+the OSeMOSYS RDM engine: <code>X_Mathematical_Type</code> takes <code>Multiply</code>,
+<code>Multiply_Ramp</code> or <code>Set</code>, and there is no <code>Dependency</code> column.</p>
+<p><strong>Outputs.</strong> The sheet lists every input parameter and result variable of
+the model (all 53 parameters and 47 results of the otoole conversion file),
+with the sets each is indexed by in <code>Indexed_By</code>. <code>Export = Y</code> puts it in the
+RDM CSVs. Filter <code>Indexed_By</code> on <code>FUEL</code> or <code>EMISSION</code> to find, for example,
+<code>InputActivityRatio</code> or <code>AnnualEmissionLimit</code>. The timeslice-level ones are
+large and N by default. A misspelt name, or an input listed as an output, is
+reported when the workbook is read. A ticked variable that the model leaves
+empty (OSTRAM gives <code>AccumulatedAnnualDemand</code> no values: demand is
+<code>SpecifiedAnnualDemand</code>) has no column in the CSVs; <code>rdm run</code> and
+<code>rdm collect</code> name it.</p>
+<p>Save the workbook and close Excel: OSTRAM reads the saved file.</p>
+<h3 id="step-43-preview-the-futures">Step 4.3. Preview the futures</h3>
+<pre><code class="language-bat">python -m ostram --setup unescap_training rdm generate --interface Interface_OSTRAM_RDM.xlsx
+</code></pre>
+<pre><code class="language-text">Run folder: ...\workspace\setups\unescap_training\rdm\test01
+6 future(s) from 3 named future(s), base scenario B_Optimised_VRE: F00, F00_s001, F01, F01_s001, F02, F02_s001
+</code></pre>
+<p><strong>Inside</strong> (<code>ostram.rdm.cli</code> → <code>interface.py</code> and <code>design.py</code>), in order:</p>
+<ol>
+<li>
+<p><strong>The workbook is checked</strong>: every sheet, every row, all problems listed at
+once with sheet and row. Whether a technology really exists is checked
+later, in A3.</p>
+</li>
+<li>
+<p><strong>The setup is checked</strong>: <code>Base_Scenario</code> must be a root of the setup.</p>
+</li>
+<li>
+<p><strong>The futures are listed</strong>: with one sample and <code>Run_Central_Future = Y</code>,
+each named future becomes itself plus one sample.</p>
+<table>
+<thead>
+<tr>
+<th>Future</th>
+<th>Starts from</th>
+<th>Then applies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F00</td>
+<td>B_Optimised_VRE</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>F00_s001</td>
+<td>B_Optimised_VRE</td>
+<td>sample 1 of X1 and X2</td>
+</tr>
+<tr>
+<td>F01</td>
+<td>B_Optimised_VRE</td>
+<td>the solar ramp</td>
+</tr>
+<tr>
+<td>F01_s001</td>
+<td>B_Optimised_VRE</td>
+<td>the solar ramp, then sample 1</td>
+</tr>
+<tr>
+<td>F02</td>
+<td>B_Optimised_VRE</td>
+<td>the demand and coal changes</td>
+</tr>
+<tr>
+<td>F02_s001</td>
+<td>B_Optimised_VRE</td>
+<td>the demand and coal changes, then sample 1</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>The values are sampled</strong> by Latin Hypercube from the seed: each range is
+cut into N slices and each slice used once. Sample 1 is the same draw in
+every future, so F01_s001 and F02_s001 differ only by their own changes.</p>
+</li>
+<li>
+<p><strong>Each row becomes scenario edits</strong>, in the format of a derived scenario's
+<code>scenario.yaml</code> (see <a href="OSTRAM_Complete_Documentation.html#scenario-edits">scenario edits</a>). F02's demand row:</p>
+<pre><code class="language-yaml">- sheet: Demand_Projection
+  param: SpecifiedAnnualDemand
+  fuel_prefix: ELC
+  note: 'ASSUMPTION: example, demand 15% above the root from 2027 [Future_Changes row 3]'
+  op: multiply
+  factor: 1.15
+  years: [2027, 2028, ..., 2050]
+</code></pre>
+<p>Edits apply in order, so a sample acts on the future's path: F02's ×1.15
+times a demand sample of 0.95 is 1.0925 × the root.</p>
+</li>
+<li>
+<p><strong>The run folder is written</strong>, <code>rdm\test01\</code>:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scenarios\&lt;future&gt;\scenario.yaml</code></td>
+<td>The edits of each future; each note names its workbook row</td>
+</tr>
+<tr>
+<td><code>RDM_Experiment_Design.csv</code></td>
+<td>One row per future: named future, sample number, the value of each X</td>
+</tr>
+<tr>
+<td><code>futures.yaml</code></td>
+<td>The list of futures that step 4.4 registers</td>
+</tr>
+<tr>
+<td><code>rdm_manifest.json</code></td>
+<td>The settings and the variables to export</td>
+</tr>
+<tr>
+<td><code>interface.xlsx</code></td>
+<td>A copy of your workbook</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interface workbook not found</code></td>
+<td>Run from the workbook's folder, or give its full path in quotes</td>
+</tr>
+<tr>
+<td><code>Uncertainty_Table has rows but Samples_Per_Future is 0</code></td>
+<td>Set <code>Samples_Per_Future</code> to 1 or more</td>
+</tr>
+<tr>
+<td><code>Base_Scenario ... is not a root of this setup</code></td>
+<td>Use a root from the message; check <code>--setup</code></td>
+</tr>
+<tr>
+<td><code>future name(s) ... are already registered scenarios</code></td>
+<td>Use other Future_IDs</td>
+</tr>
+<tr>
+<td><code>run folder exists</code></td>
+<td>Change <code>Run_Name</code>, or add <code>--overwrite</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="step-44-run-everything">Step 4.4. Run everything</h3>
+<pre><code class="language-bat">python -m ostram --setup unescap_training rdm run --interface Interface_OSTRAM_RDM.xlsx --overwrite
+</code></pre>
+<p><code>--overwrite</code> replaces the run folder of step 4.3. <code>--compile-only</code> builds and
+compiles without solving. <code>--env-name &lt;name&gt;</code> if your environment is not
+<code>OSTRAM-env</code>.</p>
+<pre><code class="language-text">Run folder: ...
+6 future(s) from 3 named future(s), base scenario B_Optimised_VRE: ...
+Using environment: OSTRAM-env
+[1/5 · A1] Preparing the base model | SKIPPED | required post-A2 root snapshots already exist
+[2/5 · A2] Adding the transmission network | SKIPPED | required post-A2 root snapshots already exist
+[3/5 · A3] Building selected scenarios | COMPLETED | ...
+[4/5 · B1] Compiling model inputs | COMPLETED | ...
+[5/5 · B2] Running the model and collecting results | COMPLETED | ...
+OSTRAM run completed successfully
+Solved: 6, compiled only: 0, missing: 0
+</code></pre>
+<p><strong>Inside</strong> (<code>ostram.rdm.cli</code>), in order:</p>
+<ol>
+<li>
+<p><strong>Step 4.3 again</strong>: the saved workbook is read, the run folder rewritten.</p>
+</li>
+<li>
+<p><strong>Old results are cleared</strong> (<code>collect.clear_future_folders</code>): each
+future's <code>execution\Executables\&lt;future&gt;_0\</code> from an earlier run is
+deleted, so a future that fails now cannot show old results.</p>
+</li>
+<li>
+<p><strong>The normal pipeline runs</strong> (<code>ostram.pipeline.orchestration</code>, as
+<code>run --skip-pull --scenarios F00,F00_s001,…</code>). <code>rdm run</code> first sets the
+environment variable <code>OSTRAM_RDM_FUTURES</code> to the run's <code>futures.yaml</code>;
+while it is set, the scenario registry (<code>registry.load_futures</code>) adds each
+future as a derived scenario of the root, with its <code>scenario.yaml</code> read
+from the run folder. Nothing in <code>config\</code> or <code>inputs\</code> changes. Then, per
+Part 2:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>For the futures</th>
+<th>Where to look</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1 + A2</td>
+<td>Skipped: the root's snapshot exists from Part 3</td>
+<td><code>_post_a2_snapshot_B_Optimised_VRE\</code></td>
+</tr>
+<tr>
+<td>A3, root</td>
+<td><code>B_Optimised_VRE</code> rebuilt with its rules (2.3)</td>
+<td><code>A1_Outputs_B_Optimised_VRE\</code></td>
+</tr>
+<tr>
+<td>A3, futures</td>
+<td><code>scenario_edits.build_scenario</code> per future: copy the root's workbooks, apply the edits (technology edits to <code>A-O_Parametrization.xlsx</code>, demand edits to <code>A-O_Demand.xlsx</code>), write the edit log</td>
+<td><code>A1_Outputs_F02\</code>, <code>apply_patches_CHANGES_&lt;time&gt;.json</code></td>
+</tr>
+<tr>
+<td>B1</td>
+<td>Each future compiled</td>
+<td><code>compilation\A2_Output_Params\F02\</code></td>
+</tr>
+<tr>
+<td>B2</td>
+<td>Datafile, LP, solve, results per future (2.4). A future uses its root's solver settings (CBC tolerance 1e-9 for <code>B_Optimised_VRE</code>) and CBC's primal simplex, which solves these models reliably. A future that fails is recorded and B2 goes on to the next.</td>
+<td><code>execution\Executables\F02_0\</code></td>
+</tr>
+</tbody>
+</table>
+<p>The edit log lists every changed cell with its old and new value: the
+place to confirm a change did what you meant.</p>
+</li>
+<li>
+<p><strong>The RDM CSVs are collected</strong> (<code>collect.collect_run</code>): for each future,
+its input and result tables are read, the variables with <code>Export = Y</code>
+kept, <code>Future_ID</code>, <code>Named_Future</code> and <code>Sample</code> added in front, and the rows
+appended to <code>RDM_Inputs.csv</code> and <code>RDM_Outputs.csv</code>, one future at a time.
+<code>RDM_Run_Status.csv</code> records each future as <code>solved</code>, <code>compiled</code> or
+<code>missing</code>.</p>
+</li>
+</ol>
+<p><strong>How long.</strong> A3 and B1 take a minute or two for six futures; each solve
+takes about one to three minutes, so the six-future example runs in about
+15–20 minutes.</p>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Meaning and fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[3/5 · A3] Building selected scenarios | FAILED</code>, and in the run log <code>Scenario F02: the edit to ... changed nothing. ... Did you mean ...?</code></td>
+<td>A Selector, Parameter or year is not in the root. The console shows only the failed stage; open the run log it names for the message. Fix the workbook row named in the note of <code>scenarios\F02\scenario.yaml</code>. An A3 error stops every future of the run.</td>
+</tr>
+<tr>
+<td><code>[FAILED] F01: CBC did not produce an optimal solution</code> in the log; F01 <code>compiled</code> in the status file</td>
+<td>F01's solve did not reach an optimum; the other futures still ran. Search the log for <code>F01</code>.</td>
+</tr>
+<tr>
+<td>A failed future took hours</td>
+<td>CBC stops at <code>iteration_time</code> (20000 s) in <code>examples\unescap_training\config\execution\Config_MOMF_T1_AB.yaml</code>. Lower it in your local copy to fail faster; do not commit that.</td>
+</tr>
+<tr>
+<td><code>.lp</code>, <code>.sol</code> or <code>_output.csv</code> missing</td>
+<td>The run was <code>--compile-only</code>, or the future failed; see the status file and the log.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="step-45-look-at-the-results">Step 4.5. Look at the results</h3>
+<p>Everything is in <code>workspace\setups\unescap_training\rdm\test01\</code>:</p>
+<ol>
+<li><strong><code>RDM_Run_Status.csv</code></strong>: did every future solve?</li>
+<li><strong><code>RDM_Experiment_Design.csv</code></strong>: which future is which, with the sampled
+values: the "X" of scenario discovery.</li>
+<li><strong><code>RDM_Outputs.csv</code></strong>: the results ("M"), one block per future.</li>
+<li><strong><code>RDM_Inputs.csv</code></strong>: the input values each future used.</li>
+</ol>
+<p>They share the column <code>Future_ID</code>:</p>
+<pre><code class="language-python">import pandas as pd
+
+run = r"workspace\setups\unescap_training\rdm\test01"
+design = pd.read_csv(rf"{run}\RDM_Experiment_Design.csv")
+outputs = pd.read_csv(rf"{run}\RDM_Outputs.csv", low_memory=False)
+
+cost = outputs.groupby("Future_ID")["TotalDiscountedCost"].sum().rename("cost")
+print(design.merge(cost, on="Future_ID"))
+</code></pre>
+<p>For the worked example this prints about 566 800 (F00), 566 200 (F01,
+cheaper solar) and 658 600 (F02, higher demand and dearer coal). F00 matches
+the <code>B_Optimised_VRE</code> solved in step 3.5 when the setup applies no ceilings,
+as in training.</p>
+<p>Compare futures with these reported costs, not with the <code>objective value</code> that
+CBC prints in the log. B2 reconciles the reported <code>TotalDiscountedCost</code> with
+the compiled costs (the record is
+<code>execution\Executables\&lt;future&gt;_0\*_cost_reconciliation.json</code>), so the two
+numbers differ: for F00 the log shows 540 166 and the CSV 566 798.</p>
+<h3 id="step-46-change-something-and-run-again">Step 4.6. Change something and run again</h3>
+<table>
+<thead>
+<tr>
+<th>You want to</th>
+<th>Do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keep the old run, start a new one</td>
+<td>Change <code>Run_Name</code>, save, run step 4.4 without <code>--overwrite</code></td>
+</tr>
+<tr>
+<td>Replace the old run</td>
+<td>Keep <code>Run_Name</code>, run step 4.4 with <code>--overwrite</code></td>
+</tr>
+<tr>
+<td>Export other variables without solving again</td>
+<td>Edit the Outputs sheet, <code>rdm generate … --overwrite</code>, then <code>python -m ostram --setup unescap_training rdm collect --run test01</code></td>
+</tr>
+<tr>
+<td>Rebuild the CSVs after a run stopped part way</td>
+<td><code>python -m ostram --setup unescap_training rdm collect --run test01</code></td>
+</tr>
+<tr>
+<td>Repeat an old run exactly</td>
+<td>Use the <code>interface.xlsx</code> of its run folder as <code>--interface</code></td>
+</tr>
+</tbody>
+</table>
+<p>Changing <code>Random_Seed</code>, or adding, removing or reordering uncertainty rows,
+changes every sampled value.</p>
+<hr>
+<h2 id="part-5-the-south-asia-model">Part 5. The South Asia model</h2>
+<p>The same parts, with these differences:</p>
+<ul>
+<li>Leave out <code>--setup unescap_training</code>: South Asia is the default. Its files
+are directly under <code>workspace\</code> (for example <code>workspace\rdm\&lt;Run_Name&gt;\</code>),
+its inputs and configuration are the top-level <code>inputs\</code> and <code>config\</code>, and
+step 3.3 is not needed.</li>
+<li>The baseline is the root scenarios plus the 17 decision scenarios; the
+<a href="OSTRAM_Complete_Documentation.html#pipeline--17-scenario-portfolio">pipeline page</a> gives the order (solve
+<code>A_Calibrated_BAU</code> first, then the rest with <code>--a-result-seed</code>).</li>
+<li><code>Apply_VRE_Ceilings = Auto</code> applies the shared solar and wind ceilings to
+every future, so F00 differs from the root by those ceilings.</li>
+<li>The base-year pin keeps the reviewed 2023–2026 values of the calibrated
+technologies, even after a <code>Set</code> without years.</li>
+<li>B2 solves with CPLEX by default; the model is larger, so run
+<code>--compile-only</code> first.</li>
+<li>A future built on <code>C_Target_VRE</code> needs a solved <code>A_Calibrated_BAU</code>, passed
+with <code>--a-result-seed &lt;folder&gt;</code>.</li>
+</ul>
+<hr>
+<h2 id="reference">Reference</h2>
+<h3 id="what-a-future-cannot-do">What a future cannot do</h3>
+<ul>
+<li>Start from another derived scenario: a future starts from a root. Copy
+that scenario's changes into the future's rows.</li>
+<li>Change the model's structure (a new country, technology or interconnector):
+that goes into the baseline (step 3.7).</li>
+<li>Hold a gross import cap or an interconnector direction overlay.</li>
+<li>Change <code>CapacityFactor</code>: an edit changes the first row of a technology and
+parameter, and that parameter has one row per timeslice.</li>
+</ul>
+<h3 id="how-a-workbook-row-becomes-edits">How a workbook row becomes edits</h3>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Edit(s) in <code>scenario.yaml</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Multiply</code>, no years</td>
+<td><code>op: multiply</code>, <code>factor</code></td>
+</tr>
+<tr>
+<td><code>Multiply</code> with years</td>
+<td><code>op: multiply</code>, <code>factor</code>, <code>years</code></td>
+</tr>
+<tr>
+<td><code>Set</code>, no years</td>
+<td><code>op: set_flat</code>, <code>value</code> (every year, base years included)</td>
+</tr>
+<tr>
+<td><code>Set</code> with years</td>
+<td><code>values: {year: value}</code></td>
+</tr>
+<tr>
+<td><code>Copy_From_Tech</code></td>
+<td><code>op: copy_from_tech</code>, <code>source_tech</code></td>
+</tr>
+<tr>
+<td><code>Multiply_Ramp</code>, years <em>a</em> to <em>b</em>, final factor <em>f</em></td>
+<td>for each year <em>y</em> after <em>a</em> up to <em>b</em>: <code>multiply</code> by <code>1 + (f − 1)(y − a)/(b − a)</code>; then <code>multiply</code> by <em>f</em> for the years after <em>b</em></td>
+</tr>
+</tbody>
+</table>
+<h3 id="rdm-code-map">RDM code map</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Role</th>
+<th>Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ostram/rdm/interface.py</code></td>
+<td>Writes the template; reads and checks a workbook</td>
+<td>4.1, 4.3</td>
+</tr>
+<tr>
+<td><code>ostram/rdm/design.py</code></td>
+<td>Lists the futures, samples, writes the edits and the run folder</td>
+<td>4.3</td>
+</tr>
+<tr>
+<td><code>ostram/rdm/collect.py</code></td>
+<td>Clears old result folders; collects the RDM CSVs</td>
+<td>4.4</td>
+</tr>
+<tr>
+<td><code>ostram/rdm/cli.py</code></td>
+<td>The <code>template</code>, <code>generate</code>, <code>run</code> and <code>collect</code> commands</td>
+<td>4.1–4.6</td>
+</tr>
+<tr>
+<td><code>ostram/pipeline/scenarios/registry.py</code></td>
+<td>Registers the futures while <code>OSTRAM_RDM_FUTURES</code> is set</td>
+<td>4.4</td>
+</tr>
+<tr>
+<td><code>ostram/pipeline/scenarios/scenario_edits.py</code></td>
+<td>Applies the edits, including demand edits</td>
+<td>4.4, A3</td>
+</tr>
+<tr>
+<td><code>ostram/pipeline/execution/orchestrator.py</code></td>
+<td>Root's solver settings and primal simplex for futures; keeps going past a failed future</td>
+<td>4.4, B2</td>
+</tr>
+<tr>
+<td><code>tests/regression/test_rdm.py</code></td>
+<td>Tests of all of the above, without a solver</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+
+  </main>
+</div>
+<footer>Generated by <code>tools/build_html_docs.py</code> from the pages in <code>docs/</code>.
+Edit those pages and run the script again; do not edit this file.</footer>
+
+<script>
+document.querySelectorAll('main table').forEach(t => {
+  const w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+document.querySelectorAll('main pre:not(.mermaid)').forEach(pre => {
+  const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'Copy';
+  b.onclick = () => {
+    const text = (pre.querySelector('code') || pre).innerText.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      b.textContent = 'Copied'; b.classList.add('done');
+      setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 1500);
+    });
+  };
+  pre.appendChild(b);
+});
+if (window.mermaid) { mermaid.initialize({ startOnLoad: true, theme: 'neutral' }); }
+</script>
+
+
+<div class="mermaidTooltip" style="opacity: 0;"></div></body></html>

@@ -85,6 +85,12 @@ EXTENDED_ROUTES = {
         help="Create a derived scenario as a copy of an existing one.",
         exit_policy="main-result",
     ),
+    "rdm": Route(
+        module_name="ostram.rdm.cli",
+        program="python -m ostram rdm",
+        help="Run RDM futures described in an Excel interface.",
+        exit_policy="main-result",
+    ),
 }
 
 

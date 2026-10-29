@@ -344,7 +344,10 @@ in its concatenated output.
 for `B_Opt_TradeCap15` through `cplex_numerical_emphasis_scenarios`. B2 applies
 these settings before optimization and prints the changed
 CPLEX settings. The selection is local to that solve; other scenarios retain
-their original commands. Always check the final solver status and certificate; a successful
+their original commands. An [RDM future](rdm.md) uses the entries of its root
+in `cplex_numerical_emphasis_scenarios` and `cbc_primal_tolerance_by_scenario`,
+and CBC solves it with primal simplex unless `rdm_cbc_simplex: dual` is set.
+Always check the final solver status and certificate; a successful
 process exit alone does not establish feasibility.
 
 ## Path and process guarantees

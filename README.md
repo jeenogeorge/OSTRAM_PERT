@@ -53,6 +53,17 @@ stages, and the [scenario catalogue](docs/reference/scenarios/scenario_catalogue
 lists the delivered scenarios: the support scenario `BAU` and the 17
 decision scenarios.
 
+To run many futures for Robust Decision Making, describe them in one Excel
+workbook and let `rdm` build, solve and collect them. Start with the
+[OSTRAM and RDM user guide](docs/OSTRAM_RDM_User_Guide.md): what each folder holds,
+which script each stage runs, how to build and solve the baseline, then the
+RDM futures. [RDM futures](docs/rdm.md) is the short reference.
+
+```powershell
+python -m ostram rdm template --out Interface_OSTRAM_RDM.xlsx
+python -m ostram rdm run --interface Interface_OSTRAM_RDM.xlsx
+```
+
 The global options `--project-root` and `--workspace` go before the command.
 They override `OSTRAM_PROJECT_ROOT` and `OSTRAM_WORKSPACE`. Without them, the
 clone is the project root and `workspace/` under it holds the generated
@@ -88,6 +99,14 @@ The documentation is in [`docs/`](docs/index.rst): [installation](docs/installat
 [adapting OSTRAM to another system](docs/adapting.md),
 [configuration](docs/configuration.md), [file map](docs/file-map.md) and
 [glossary](docs/glossary.md).
+
+Two single-file HTML versions are in `docs/html/`:
+`OSTRAM_RDM_User_Guide.html` (the user guide) and
+`OSTRAM_Complete_Documentation.html` (every page, with one table of contents).
+Open them in a browser; keep them in the same folder, because the guide links
+into the complete documentation. After changing a page in `docs/`, rebuild them
+with `python tools/build_html_docs.py --bake` (see the script's help for what
+it needs).
 
 The sources, conversions and assumptions behind the inputs are documented in
 the scenario workbook `inputs/scenarios/OSTRAM_Scenario_Inputs.xlsx`: in its

@@ -16,6 +16,7 @@ Developed by `Climate Lead Group <https://github.com/Climate-Lead-Group>`_.
 
    installation
    quickstart
+   OSTRAM_RDM_User_Guide
 
 .. toctree::
    :maxdepth: 2
@@ -28,6 +29,7 @@ Developed by `Climate Lead Group <https://github.com/Climate-Lead-Group>`_.
    rules
    scenario-edits
    adding-a-scenario
+   rdm
    adapting
 
 .. toctree::
