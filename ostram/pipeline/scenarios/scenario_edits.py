@@ -348,6 +348,144 @@ class ScenarioEditError(ValueError):
     """A scenario edit or a VRE ceiling matched nothing in the workbook."""
 
 
+class BoundConflictError(ScenarioEditError):
+    """A scenario's edits left an upper bound below its lower bound."""
+
+
+# --------------------------------------------------------------------------
+# Bound checks: the model file's own "check" statements, run at A3
+# --------------------------------------------------------------------------
+# Each entry: (upper parameter, lower parameter(s), what the bound limits).
+# The lower side is the sum of the listed parameters. They mirror the checks of
+# the OSeMOSYS model file (osemosys_fast_preprocessed*.txt, "Capacity
+# investment", "Annual Activity", "Capacity" checks 1 and 2), which glpsol
+# otherwise only reports in B2, after compilation, as check[...] failed.
+BOUND_CHECKS = (
+    ("TotalAnnualMaxCapacityInvestment", ("TotalAnnualMinCapacityInvestment",),
+     "new investment"),
+    ("TotalTechnologyAnnualActivityUpperLimit", ("TotalTechnologyAnnualActivityLowerLimit",),
+     "annual activity"),
+    ("TotalAnnualMaxCapacity", ("ResidualCapacity",), "total capacity"),
+    ("TotalAnnualMaxCapacity", ("ResidualCapacity", "TotalAnnualMinCapacityInvestment"),
+     "total capacity"),
+)
+BOUND_TOLERANCE = 1e-6
+_BOUND_PARAMS = {p for upper, lower, _ in BOUND_CHECKS for p in (upper, *lower)}
+
+
+def _bound_value(value):
+    """Return a cell as a float, or None when blank or not a number."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(number) else number
+
+
+def _read_bound_rows(ws, col_map, year_cols, techs):
+    """Return {(tech, param): {year: value}} of the compiled bound rows of ``techs``.
+
+    A row whose Projection.Mode is blank or EMPTY is not compiled, so it is left out.
+    """
+    rows = {}
+    tc, pc, proj = col_map["tech"], col_map["param"], col_map.get("proj")
+    for r in range(2, ws.max_row + 1):
+        tech = ws.cell(row=r, column=tc).value
+        param = ws.cell(row=r, column=pc).value
+        if tech is None or param is None:
+            continue
+        tech, param = str(tech).strip(), str(param).strip()
+        if tech not in techs or param not in _BOUND_PARAMS or (tech, param) in rows:
+            continue
+        if proj is not None and ws.cell(row=r, column=proj).value in (None, "", "EMPTY"):
+            continue
+        rows[(tech, param)] = {
+            y: _bound_value(ws.cell(row=r, column=c).value) for y, c in year_cols.items()
+        }
+    return rows
+
+
+def find_bound_conflicts(ws, edited):
+    """Return the bound conflicts on ``ws`` in the cells named by ``edited``.
+
+    ``edited`` maps (tech, param) to the set of years an edit changed. A
+    conflict is reported only where the year of one of its parameters was
+    edited, so conflicts the root already had are not blamed on the edits.
+    Each conflict is a dict: tech, upper, lower (tuple), year, upper_value,
+    lower_value, what.
+    """
+    techs = {tech for tech, param in edited if param in _BOUND_PARAMS}
+    if not techs:
+        return []
+    col_map, year_cols = scan_columns(ws)
+    rows = _read_bound_rows(ws, col_map, year_cols, techs)
+    conflicts = []
+    reported = set()
+    for tech in sorted(techs):
+        for upper, lower, what in BOUND_CHECKS:
+            touched = set()
+            for param in (upper, *lower):
+                touched |= edited.get((tech, param), set())
+            if not touched or (tech, upper) not in rows:
+                continue
+            for year in sorted(touched):
+                up = rows[(tech, upper)].get(year)
+                parts = [rows.get((tech, p), {}).get(year) for p in lower]
+                # As in the model file: an absent upper bound or a zero first
+                # lower term means there is nothing to check.
+                if up is None or up == -1 or not parts[0]:
+                    continue
+                low = sum(v or 0.0 for v in parts)
+                # Capacity checks 1 and 2 share their upper bound: one report a year.
+                if up < low - BOUND_TOLERANCE * max(1.0, abs(low)) and (tech, upper, year) not in reported:
+                    reported.add((tech, upper, year))
+                    conflicts.append({
+                        "tech": tech, "upper": upper, "lower": lower, "year": year,
+                        "upper_value": up, "lower_value": low, "what": what,
+                    })
+    return conflicts
+
+
+def _year_spans(years):
+    """Return years as text, consecutive years joined: 2025, 2028-2030."""
+    years = sorted(years)
+    spans, start = [], None
+    for i, year in enumerate(years):
+        start = year if start is None else start
+        if i + 1 == len(years) or years[i + 1] != year + 1:
+            spans.append(str(start) if start == year else f"{start}-{year}")
+            start = None
+    return ", ".join(spans)
+
+
+def bound_conflict_message(scenario, sheet, conflicts, notes):
+    """Return the text of a BoundConflictError, one line per tech and check."""
+    grouped = {}
+    for c in conflicts:
+        grouped.setdefault((c["tech"], c["upper"], c["lower"]), []).append(c)
+    lines = [
+        f"Scenario {scenario}: the edits put an upper bound below its lower bound "
+        f"on sheet \"{sheet}\". The model would be infeasible (glpsol: check[...] failed)."
+    ]
+    for (tech, upper, lower), items in grouped.items():
+        worst = max(items, key=lambda c: c["lower_value"] - c["upper_value"])
+        lines.append(
+            f"  {tech}, {_year_spans(c['year'] for c in items)}: {upper} "
+            f"{worst['upper_value']:g} < {' + '.join(lower)} {worst['lower_value']:g}"
+            + (f" (in {worst['year']})." if len(items) > 1 else ".")
+        )
+        changed_by = sorted({n for p in (upper, *lower) for n in notes.get((tech, p), ()) if n})
+        if changed_by:
+            lines.append(f"    Changed by: {'; '.join(changed_by)}")
+    lines.append(
+        "  Keep each edit at or above the lower bound in those years: leave the years "
+        "out (Year_From/Year_To) or change the value."
+    )
+    return "\n".join(lines)
+
+
 def scenario_edit_error(ws, log, subject, param, name, kind="tech"):
     """Return the error for an edit that matched nothing; None for a valid "create"."""
     techs, params = set(), set()
@@ -768,6 +906,7 @@ def apply_scenario_edits(wb, scenario_inputs, log, minimum_boundaries=None, dema
     Edits whose ``sheet`` is a demand sheet go to ``demand_wb``, the scenario's
     ``A-O_Demand.xlsx``; every other edit goes to ``wb``.
     """
+    edited = log.setdefault("edited_bounds", {})
     for edit in scenario_inputs.get("edits", []):
         if edit.get("sheet") in DEMAND_SHEETS:
             if demand_wb is None:
@@ -776,6 +915,7 @@ def apply_scenario_edits(wb, scenario_inputs, log, minimum_boundaries=None, dema
             continue
         ws = wb[edit["sheet"]]
         col_map, year_cols = scan_columns(ws)
+        first_cell = len(log["cells"])
         apply_edit(
             ws,
             col_map,
@@ -784,6 +924,40 @@ def apply_scenario_edits(wb, scenario_inputs, log, minimum_boundaries=None, dema
             log,
             minimum_boundaries=minimum_boundaries,
         )
+        # Remember which bound cells each edit changed, and its note (which
+        # names the workbook row for an RDM future), for check_bounds.
+        for cell in log["cells"][first_cell:]:
+            if cell["param"] in _BOUND_PARAMS:
+                entry = edited.setdefault(edit["sheet"], {}).setdefault(
+                    (cell["tech"], cell["param"]), {"years": set(), "notes": set()}
+                )
+                entry["years"].add(cell["year"])
+                entry["notes"].add(edit.get("note", ""))
+
+
+def check_bounds(param_file, scenario, log):
+    """Raise BoundConflictError when the edits left an upper bound below its lower bound.
+
+    Reads the saved ``param_file`` (after the base-year pin) and checks only the
+    cells the edits changed, as recorded in ``log["edited_bounds"]``.
+    """
+    edited = log.get("edited_bounds") or {}
+    if not edited:
+        return
+    wb = load_workbook(param_file, read_only=False, data_only=True)
+    try:
+        messages = []
+        for sheet, cells in edited.items():
+            conflicts = find_bound_conflicts(
+                wb[sheet], {key: entry["years"] for key, entry in cells.items()}
+            )
+            if conflicts:
+                notes = {key: entry["notes"] for key, entry in cells.items()}
+                messages.append(bound_conflict_message(scenario, sheet, conflicts, notes))
+    finally:
+        wb.close()
+    if messages:
+        raise BoundConflictError("\n".join(messages))
 
 
 def reused_edits(scenario, scenario_inputs, configs=CONFIGS):
@@ -924,9 +1098,12 @@ def build_scenario(
             tgt_dir, root, rules, skip_backup=True,
         )
 
+    edited_bounds = log.pop("edited_bounds", {})
     log_path = tgt_dir / f"apply_patches_CHANGES_{stamp}.json"
     log_path.write_text(json.dumps(log, indent=2, default=str))
     log["log_path"] = str(log_path)
+    # Last, so the base-year pin is included and the edit log is already written.
+    check_bounds(tgt_dir / PARAM_FILE, scenario, {"edited_bounds": edited_bounds})
     return log
 
 

@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import collections
 import io
 import json
 import locale
@@ -25,6 +26,9 @@ SENSITIVE_ARGUMENT = re.compile(
     r"(?:token|password|passwd|secret|license|licence|license[-_]?server)",
     re.IGNORECASE,
 )
+
+
+CHILD_ERROR_LINES = 60  # stderr lines kept to show when a child fails
 
 
 @dataclass(frozen=True)
@@ -244,6 +248,7 @@ class RunReporter:
         self._rendered = False
         self._finished = False
         self._capture_depth = 0
+        self._child_stderr: collections.deque[str] = collections.deque(maxlen=CHILD_ERROR_LINES)
         self._stop = threading.Event()
         self._heartbeat: threading.Thread | None = None
         self._write_log("RUN", f"start_time={self.started_at.isoformat()}")
@@ -427,6 +432,8 @@ class RunReporter:
                 text = _decode_child_line(raw).rstrip("\r\n")
                 clean = _strip_terminal_controls(text)
                 self._write_log(f"CHILD {name}", clean)
+                if name == "stderr":
+                    self._child_stderr.append(clean)
                 self.recent_status(clean)
                 if self.verbose:
                     target = self.stdout if name == "stdout" else self.stderr
@@ -515,6 +522,7 @@ class RunReporter:
         )
         assert process.stdout is not None
         assert process.stderr is not None
+        self._child_stderr = collections.deque(maxlen=CHILD_ERROR_LINES)
         readers = [
             threading.Thread(
                 target=self._read_pipe,
@@ -539,7 +547,23 @@ class RunReporter:
                 reader.join()
         self._write_log("COMMAND", f"exit_code={returncode}")
         if returncode:
+            self._echo_child_message()
             raise subprocess.CalledProcessError(returncode, tokens)
+
+    def _echo_child_message(self) -> None:
+        """Show a failed child's stderr on the console when it is a message, not a traceback.
+
+        A stage that stops on a mistake in the inputs (a scenario edit that
+        matches nothing, an edit below a lower bound) prints its explanation to
+        stderr and exits; without this it would reach only the run log.
+        """
+
+        lines = [line for line in self._child_stderr if line.strip()]
+        if not lines or any(line.startswith("Traceback") for line in lines):
+            return
+        if self.interactive and self._rendered:
+            safe_write(self.stderr, "\r\x1b[2K", flush=True)
+        safe_write(self.stderr, "\n" + "\n".join(lines) + "\n\n", flush=True)
 
     def finish(self, *, outcome: str, exit_code: int, final_message: str) -> None:
         """Log the end of the run, print ``final_message`` and the log path.

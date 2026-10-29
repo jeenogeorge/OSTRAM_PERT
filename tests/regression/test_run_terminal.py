@@ -232,6 +232,30 @@ class ChildProcessTeeTests(unittest.TestCase):
         self.assertIn("COMMAND | exit_code=7", log)
         self.assertIn("final_process_exit_code=7", log)
 
+    def test_failed_child_message_reaches_the_console(self) -> None:
+        script = "import sys; print('Scenario F01: the edits put a bound below', file=sys.stderr); sys.exit(1)"
+        with tempfile.TemporaryDirectory(dir=TEST_ROOT) as temp:
+            root = Path(temp).resolve()
+            reporter, _stdout, stderr = self._reporter(root, verbose=False)
+            with self.assertRaises(subprocess.CalledProcessError):
+                reporter.run_child([sys.executable, "-B", "-c", script], cwd=root, env=os.environ.copy())
+            reporter.finish(outcome="FAILED", exit_code=1, final_message="OSTRAM run failed")
+
+        self.assertIn("Scenario F01: the edits put a bound below", stderr.getvalue())
+
+    def test_failed_child_traceback_stays_in_the_log(self) -> None:
+        script = "raise RuntimeError('internal failure')"
+        with tempfile.TemporaryDirectory(dir=TEST_ROOT) as temp:
+            root = Path(temp).resolve()
+            reporter, _stdout, stderr = self._reporter(root, verbose=False)
+            with self.assertRaises(subprocess.CalledProcessError):
+                reporter.run_child([sys.executable, "-B", "-c", script], cwd=root, env=os.environ.copy())
+            reporter.finish(outcome="FAILED", exit_code=1, final_message="OSTRAM run failed")
+            log = reporter.log_path.read_text(encoding="utf-8")
+
+        self.assertNotIn("internal failure", stderr.getvalue())
+        self.assertIn("internal failure", log)
+
     def test_keyboard_interrupt_signals_child_and_propagates(self) -> None:
         class FakeProcess:
             def __init__(self) -> None:

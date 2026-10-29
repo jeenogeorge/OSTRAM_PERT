@@ -368,3 +368,91 @@ class StandaloneStopMessageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _bounds_sheet():
+    """A sheet with committed coal builds in 2025 and 2026 and a link at 2.5 GW."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Secondary Techs"
+    sheet.append(HEADER)
+    commit = {2025: 1.32, 2026: 2.0}
+    sheet.append([1, "PWRCOABGDXX", "coal", 1, "TotalAnnualMaxCapacityInvestment", "GW",
+                  "User defined", 0, *[2.0] * len(YEARS)])
+    sheet.append([1, "PWRCOABGDXX", "coal", 2, "TotalAnnualMinCapacityInvestment", "GW",
+                  "User defined", 0, *[commit.get(y, 0.0) for y in YEARS]])
+    sheet.append([2, "TRNBGDXXINDEA", "link", 3, "ResidualCapacity", "GW",
+                  "User defined", 0, *[2.5] * len(YEARS)])
+    sheet.append([2, "TRNBGDXXINDEA", "link", 4, "TotalAnnualMaxCapacity", "GW",
+                  "User defined", 0, *[9999.0] * len(YEARS)])
+    sheet.append([3, "PWRSPVBGDXX", "solar", 5, "TotalTechnologyAnnualActivityUpperLimit", "PJ",
+                  "EMPTY", 0, *[None] * len(YEARS)])
+    sheet.append([3, "PWRSPVBGDXX", "solar", 6, "TotalTechnologyAnnualActivityLowerLimit", "PJ",
+                  "User defined", 0, *[10.0] * len(YEARS)])
+    return workbook
+
+
+def _edit_and_check(workbook, *edit_list):
+    log = _log()
+    edits.apply_scenario_edits(workbook, {"edits": list(edit_list)}, log)
+    sheet = workbook["Secondary Techs"]
+    cells = log["edited_bounds"].get("Secondary Techs", {})
+    return edits.find_bound_conflicts(sheet, {k: v["years"] for k, v in cells.items()}), log
+
+
+class BoundConflictTests(unittest.TestCase):
+    """An edit that puts an upper bound below its lower bound is caught at A3."""
+
+    def test_halving_a_cap_below_a_committed_build_is_a_conflict(self) -> None:
+        conflicts, log = _edit_and_check(_bounds_sheet(), {
+            "sheet": "Secondary Techs", "param": "TotalAnnualMaxCapacityInvestment",
+            "tech": "PWRCOABGDXX", "op": "multiply", "factor": 0.5,
+            "note": "COA x 0.5 [Future_Changes row 2]",
+        })
+        self.assertEqual([(c["tech"], c["year"]) for c in conflicts],
+                         [("PWRCOABGDXX", 2025), ("PWRCOABGDXX", 2026)])
+        notes = {k: v["notes"] for k, v in log["edited_bounds"]["Secondary Techs"].items()}
+        message = edits.bound_conflict_message("E2A", "Secondary Techs", conflicts, notes)
+        self.assertIn("Scenario E2A", message)
+        self.assertIn("PWRCOABGDXX, 2025-2026: TotalAnnualMaxCapacityInvestment 1 < "
+                      "TotalAnnualMinCapacityInvestment 2 (in 2026)", message)
+        self.assertIn("[Future_Changes row 2]", message)
+
+    def test_skipping_the_committed_years_passes(self) -> None:
+        conflicts, _ = _edit_and_check(_bounds_sheet(), {
+            "sheet": "Secondary Techs", "param": "TotalAnnualMaxCapacityInvestment",
+            "tech": "PWRCOABGDXX", "op": "multiply", "factor": 0.5,
+            "years": [y for y in YEARS if y not in (2025, 2026)],
+        })
+        self.assertEqual(conflicts, [])
+
+    def test_total_capacity_below_residual_is_a_conflict(self) -> None:
+        conflicts, _ = _edit_and_check(_bounds_sheet(), {
+            "sheet": "Secondary Techs", "param": "TotalAnnualMaxCapacity",
+            "tech": "TRNBGDXXINDEA", "values": {"2030": 2.0},
+        })
+        self.assertEqual([(c["year"], c["what"]) for c in conflicts], [(2030, "total capacity")])
+
+    def test_freezing_at_the_residual_passes(self) -> None:
+        conflicts, _ = _edit_and_check(_bounds_sheet(), {
+            "sheet": "Secondary Techs", "param": "TotalAnnualMaxCapacity",
+            "tech": "TRNBGDXXINDEA", "op": "set_flat", "value": 2.5,
+        })
+        self.assertEqual(conflicts, [])
+
+    def test_an_edited_upper_activity_limit_is_checked_against_the_floor(self) -> None:
+        conflicts, _ = _edit_and_check(_bounds_sheet(), {
+            "sheet": "Secondary Techs", "param": "TotalTechnologyAnnualActivityUpperLimit",
+            "tech": "PWRSPVBGDXX", "values": {"2040": 8.0, "2041": 12.0},
+        })
+        self.assertEqual([c["year"] for c in conflicts], [2040])
+
+    def test_untouched_rows_are_not_checked(self) -> None:
+        workbook = _bounds_sheet()
+        sheet = workbook["Secondary Techs"]
+        sheet.cell(row=2, column=HEADER.index(2025) + 1, value=0.1)  # a conflict the root already had
+        conflicts, _ = _edit_and_check(workbook, {
+            "sheet": "Secondary Techs", "param": "TotalAnnualMaxCapacity",
+            "tech": "TRNBGDXXINDEA", "op": "set_flat", "value": 8.5,
+        })
+        self.assertEqual(conflicts, [])

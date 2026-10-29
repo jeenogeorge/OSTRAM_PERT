@@ -120,6 +120,25 @@ technology, fuel, parameter or year missing from the root stops the build of
 that future in A3 with the message of the [scenario edits](scenario-edits.md#edits-that-match-nothing),
 which names the future and suggests the closest name.
 
+After a future's edits, A3 also checks the bounds the edits changed, with the
+checks of the OSeMOSYS model file: `TotalAnnualMaxCapacityInvestment` at least
+`TotalAnnualMinCapacityInvestment`, `TotalTechnologyAnnualActivityUpperLimit` at
+least `TotalTechnologyAnnualActivityLowerLimit`, and `TotalAnnualMaxCapacity` at
+least `ResidualCapacity` (plus `TotalAnnualMinCapacityInvestment`). Halving a
+cap in a year with a committed build fails this check:
+
+```text
+Scenario NCOA: the edits put an upper bound below its lower bound on sheet "Secondary Techs". ...
+  PWRCOABGDXX, 2025: TotalAnnualMaxCapacityInvestment 0.6666 < TotalAnnualMinCapacityInvestment 1.32.
+    Changed by: COA x 0.5 [Future_Changes row 2]
+```
+
+Every future with a conflict is listed, then the run stops before B1. Without
+the check, the same model would compile and fail in B2 with glpsol's
+`check[GLOBAL,PWRCOABGDXX,2025] failed`. Only years an edit changed are
+checked, so the root's own values are never blamed on a future. A3 messages
+like these are shown on the console as well as in the run log.
+
 ## The run folder
 
 `<workspace>/rdm/<Run_Name>/` holds:

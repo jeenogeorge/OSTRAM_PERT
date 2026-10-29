@@ -358,21 +358,27 @@ def materialize_scenarios(
 
         derived_by_name = active_registry.derived_by_name
         derived_records: list[dict] = []
+        bound_conflicts: list[str] = []
         for scenario in selected:
             derived = derived_by_name.get(scenario)
             if derived is None:
                 continue
-            log = scenario_edits.build_scenario(
-                scenario,
-                source=derived.base_scenario,
-                skip_backup=True,
-                a1_outputs=active_paths.a1_outputs,
-                configs=derived.config_root or resolve_paths().scenario_config_root,
-                ceiling_path=(
-                    resolve_paths().scenario_registry
-                ),
-                authority_path=active_paths.soasia,
-            )
+            try:
+                log = scenario_edits.build_scenario(
+                    scenario,
+                    source=derived.base_scenario,
+                    skip_backup=True,
+                    a1_outputs=active_paths.a1_outputs,
+                    configs=derived.config_root or resolve_paths().scenario_config_root,
+                    ceiling_path=(
+                        resolve_paths().scenario_registry
+                    ),
+                    authority_path=active_paths.soasia,
+                )
+            except scenario_edits.BoundConflictError as error:
+                # Build the other scenarios too, so one message lists every conflict.
+                bound_conflicts.append(str(error))
+                continue
             target = active_paths.a1_outputs / f"A1_Outputs_{scenario}"
             direction_record: dict | None = None
             if derived.direction_overlay is not None:
@@ -402,6 +408,8 @@ def materialize_scenarios(
                     "direction": direction_record,
                 }
             )
+        if bound_conflicts:
+            raise scenario_edits.BoundConflictError("\n".join(bound_conflicts))
     finally:
         if state_dir is not None:
             _remove_restriction_state_directory(state_dir)
